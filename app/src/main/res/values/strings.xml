@@ -1,0 +1,40 @@
+<resources>
+    <string name="app_name">GameTrans</string>
+    <string name="action_go">Go</string>
+    <string name="baking_title">Baking with Gemini</string>
+    <string name="label_prompt">Prompt</string>
+    <string name="prompt_placeholder">Provide a recipe for the baked goods in the image</string>
+    <string name="image1_description">Cupcake</string>
+    <string name="image2_description">Cookies</string>
+    <string name="image3_description">Cake</string>
+    <string name="results_placeholder">(Results will appear here)</string>
+    
+    <!-- 悬浮窗相关字符串 -->
+    <string name="floating_window_title">翻译悬浮窗</string>
+    <string name="floating_window_description">屏幕翻译服务正在运行</string>
+    <string name="permission_required">需要悬浮窗权限</string>
+    <string name="permission_message">请授予悬浮窗权限以使用翻译功能</string>
+    <string name="grant_permission">授予权限</string>
+    <string name="start_floating_window">启动悬浮窗</string>
+    <string name="stop_floating_window">停止悬浮窗</string>
+    <string name="translate_button">翻译</string>
+    
+    <!-- 设置界面相关字符串 -->
+    <string name="settings">设置</string>
+    <string name="settings_title">应用设置</string>
+    <string name="translation_settings">翻译设置</string>
+    <string name="prompt_template">提示词模板</string>
+    <string name="prompt_optimized">优化模式（快速）</string>
+    <string name="prompt_detailed">详细模式（准确）</string>
+    <string name="prompt_custom">自定义模式</string>
+    <string name="custom_prompt_label">自定义提示词</string>
+    <string name="custom_prompt_hint">在此输入您的自定义翻译提示词...</string>
+    <string name="image_optimization">图像优化</string>
+    <string name="max_image_size">最大图像尺寸</string>
+    <string name="compression_quality">压缩质量</string>
+    <string name="save_settings">保存设置</string>
+    <string name="reset_defaults">恢复默认</string>
+    <string name="settings_saved">设置已保存</string>
+    <string name="settings_reset">设置已重置</string>
+    <string name="translation_incomplete_tip">翻译质量提升建议</string>
+</resources>
