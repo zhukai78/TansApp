@@ -9,8 +9,8 @@ import android.util.Log
  */
 data class AppSettings(
     val promptMode: PromptMode = PromptMode.OPTIMIZED,
-    val maxImageSize: Int = 2048,  // 进一步提高默认图像尺寸以改善翻译完整性
-    val compressionQuality: Int = 85,  // 进一步提高默认压缩质量以保持更多细节
+    val maxImageSize: Int = 1024,  // 优化性能：降低默认图像尺寸以加快API调用速度
+    val compressionQuality: Int = 85,  // 平衡质量与性能的压缩质量设置
     val customPrompt: String = ""  // 新增：自定义提示词
 )
 
@@ -39,9 +39,9 @@ class SettingsManager(private val context: Context) {
         private const val KEY_COMPRESSION_QUALITY = "compression_quality"
         private const val KEY_CUSTOM_PROMPT = "custom_prompt"  // 新增
         
-        // 默认值 - 进一步提高图像质量以改善翻译完整性
-        private const val DEFAULT_MAX_IMAGE_SIZE = 2048  // 提高到2048px以获得更好的文字识别
-        private const val DEFAULT_COMPRESSION_QUALITY = 95  // 提高到95%以保持更多细节
+        // 默认值 - 平衡性能与质量的优化设置
+        private const val DEFAULT_MAX_IMAGE_SIZE = 1024  // 优化为1024px以加快API处理速度
+        private const val DEFAULT_COMPRESSION_QUALITY = 85  // 85%压缩质量平衡文件大小与清晰度
         
         // 默认自定义提示词（不能使用const val，因为是多行字符串）
         private val DEFAULT_CUSTOM_PROMPT = """
@@ -51,6 +51,7 @@ class SettingsManager(private val context: Context) {
 - 仅翻译外语：日文、英文、韩文、繁体字
 - 翻译目标语言：简体中文
 - 跳过简体中文内容
+- 跳过时间格式内容
 
 输出格式：
 [原文1]
@@ -157,7 +158,8 @@ class SettingsManager(private val context: Context) {
             - 翻译目标语言：简体中文（不是英文！）
             - 绝对不翻译简体中文：包括但不限于"正在截图"、"设置"、"搜索"、"时间显示"等
             - 中文数字、中文标点、中文应用名不要翻译
-            
+            - 跳过时间格式内容
+
             语言判断标准：
             - 日文特征：ひらがな（あいうえお）、カタカナ（アイウエオ）、日式汉字用法
             - 英文特征：English alphabet letters
@@ -178,6 +180,8 @@ class SettingsManager(private val context: Context) {
             - 严格按语言特征判断，不要将中文当外语
             - 只输出确认为外语的文本及其中文翻译
             - 如无外语文本，回复"未检测到需要翻译的文本"
+            - 跳过时间格式内容
+
         """.trimIndent()
     }
     
@@ -206,11 +210,10 @@ class SettingsManager(private val context: Context) {
             全面扫描区域：
             1. 主要内容：标题、正文、按钮文字、菜单项
             2. 界面元素：状态栏、导航栏、工具栏、标签页
-            3. 小字体内容：提示信息、版权信息、时间戳、版本号
+            3. 小字体内容：提示信息
             4. 交互元素：对话框、弹窗、下拉菜单、选项卡
-            5. 图标文字：徽章数字、图标标签、快捷方式名称
-            6. 边缘内容：页脚、侧边栏、浮动元素
-            7. 游戏专属：血量、等级、技能名、道具名、NPC对话
+            5. 边缘内容：页脚、侧边栏、浮动元素
+            6. 游戏专属：技能名、道具名、NPC对话
 
             输出格式：
             [完整原文1]

@@ -72,8 +72,12 @@ fun TranslationResultPanel(
     
     AnimatedVisibility(
         visible = showPanel && !translationResult.isNullOrBlank(),
-        enter = slideInVertically(animationSpec = tween(300)) { it } + fadeIn(animationSpec = tween(300)),
-        exit = slideOutVertically(animationSpec = tween(300)) { it } + fadeOut(animationSpec = tween(300))
+        enter = slideInVertically(
+            animationSpec = tween(400, easing = androidx.compose.animation.core.EaseOutCubic)
+        ) { it / 2 } + fadeIn(animationSpec = tween(400)),
+        exit = slideOutVertically(
+            animationSpec = tween(300, easing = androidx.compose.animation.core.EaseInCubic)
+        ) { it / 2 } + fadeOut(animationSpec = tween(300))
     ) {
         Box(
             modifier = Modifier
@@ -85,19 +89,24 @@ fun TranslationResultPanel(
         ) {
             Card(
                 modifier = Modifier
-                    .widthIn(max = (configuration.screenWidthDp * 0.9).dp) // 最大宽度为屏幕的90%
-                    .heightIn(max = (configuration.screenHeightDp * 0.6).dp) // 最大高度为屏幕的60%
-                    .shadow(12.dp, RoundedCornerShape(20.dp))
+                    .widthIn(max = (configuration.screenWidthDp * 0.88).dp) // 减少宽度到88%
+                    .heightIn(max = (configuration.screenHeightDp * 0.65).dp) // 稍微增加高度到65%
+                    .shadow(
+                        16.dp, 
+                        RoundedCornerShape(24.dp),
+                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    )
                     .border(
-                        2.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                        RoundedCornerShape(20.dp)
+                        1.dp,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        RoundedCornerShape(24.dp)
                     ),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -114,21 +123,27 @@ fun TranslationResultPanel(
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 翻译图标 - 使用自定义的翻译符号
+                            // 翻译图标 - 使用渐变背景的翻译符号
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                    )
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                        RoundedCornerShape(12.dp)
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = "译",
                                     color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 18.sp
                                     )
                                 )
                             }
@@ -137,9 +152,9 @@ fun TranslationResultPanel(
                             
                             Text(
                                 text = "翻译结果",
-                                style = MaterialTheme.typography.titleMedium.copy(
+                                style = MaterialTheme.typography.headlineSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp
+                                    fontSize = 20.sp
                                 ),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -198,12 +213,17 @@ fun TranslationResultPanel(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = (configuration.screenHeightDp * 0.4).dp)
+                                .heightIn(max = (configuration.screenHeightDp * 0.42).dp)
                                 .background(
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                    RoundedCornerShape(12.dp)
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    RoundedCornerShape(16.dp)
                                 )
-                                .padding(16.dp)
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                                    RoundedCornerShape(16.dp)
+                                )
+                                .padding(18.dp)
                         ) {
                             Column(
                                 modifier = Modifier
@@ -221,11 +241,12 @@ fun TranslationResultPanel(
                                         Text(
                                             text = paragraph.trim(),
                                             style = MaterialTheme.typography.bodyLarge.copy(
-                                                fontSize = 16.sp,
-                                                lineHeight = 24.sp,
-                                                fontWeight = FontWeight.Medium
+                                                fontSize = 14.sp,
+                                                lineHeight = 20.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                letterSpacing = 0.3.sp
                                             ),
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                         
@@ -235,9 +256,10 @@ fun TranslationResultPanel(
                                         Text(
                                             text = paragraph.trim(),
                                             style = MaterialTheme.typography.bodyLarge.copy(
-                                                fontSize = 16.sp,
-                                                lineHeight = 24.sp,
-                                                fontWeight = FontWeight.Medium
+                                                fontSize = 14.sp,
+                                                lineHeight = 20.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                letterSpacing = 0.2.sp
                                             ),
                                             color = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier.fillMaxWidth()

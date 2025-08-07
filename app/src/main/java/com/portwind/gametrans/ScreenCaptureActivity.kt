@@ -131,8 +131,8 @@ class ScreenCaptureActivity : ComponentActivity() {
             // 先隐藏翻译面板，避免截取到之前的翻译内容
             hideTranslationPanelBeforeCapture()
             
-            // 等待更长时间确保面板完全消失
-            kotlinx.coroutines.delay(1500)
+            // 等待较短时间确保面板完全消失（优化性能）
+            kotlinx.coroutines.delay(800)
             
             val screenCaptureManager = ScreenCaptureManager.getInstance(this@ScreenCaptureActivity)
             Log.d(TAG, "ScreenCaptureManager obtained for screenshot")

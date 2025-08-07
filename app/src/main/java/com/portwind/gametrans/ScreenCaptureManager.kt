@@ -177,8 +177,8 @@ class ScreenCaptureManager private constructor(private val context: Context) {
     
     private suspend fun waitForImage(): Image? = withContext(Dispatchers.IO) {
         return@withContext try {
-            // 给系统时间来渲染第一帧
-            Thread.sleep(200) 
+            // 使用协程延迟替代Thread.sleep，避免阻塞线程
+            kotlinx.coroutines.delay(200) 
             
             // 获取图像
             val image = imageReader?.acquireLatestImage()

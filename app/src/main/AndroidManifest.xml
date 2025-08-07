@@ -22,9 +22,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/ic"
         android:supportsRtl="true"
         android:theme="@style/Theme.GameTrans"
         tools:targetApi="31">
@@ -50,17 +50,7 @@
             android:noHistory="true"
             android:clearTaskOnLaunch="true"
             android:finishOnTaskLaunch="true" />
-        
-        <activity
-            android:name=".RegionSelectActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Transparent"
-            android:launchMode="singleInstance"
-            android:taskAffinity=""
-            android:excludeFromRecents="true"
-            android:noHistory="true"
-            android:clearTaskOnLaunch="true"
-            android:finishOnTaskLaunch="true" />
+
 
         <!-- 悬浮窗服务 -->
         <service

@@ -9,6 +9,7 @@ import com.google.ai.client.generativeai.type.content
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 
 /**
@@ -29,12 +30,15 @@ class GeminiApiManager(private val context: Context) {
     
     companion object {
         private const val TAG = "GeminiApiManager"
-        private const val MODEL_NAME = "gemini-2.5-flash"
+        private const val MODEL_NAME = "gemini-2.5-flash"  // 修正模型名称
         // TODO: 将API密钥配置到local.properties中
         private const val API_KEY = "YOUR_GEMINI_API_KEY_HERE"
     }
     
     private val settingsManager = SettingsManager(context)
+    
+    // 防止重复请求的原子锁
+    private val isTranslating = AtomicBoolean(false)
     
     private val generativeModel: GenerativeModel by lazy {
         GenerativeModel(
@@ -58,43 +62,43 @@ class GeminiApiManager(private val context: Context) {
         }
     }
     
-//    /**
-//     * 优化图像以提升API处理速度
-//     * @param bitmap 原始图像
-//     * @return 优化后的图像
-//     */
-//    private fun optimizeImage(bitmap: Bitmap): Bitmap {
-//        val settings = settingsManager.getSettings()
-//        val startTime = System.currentTimeMillis()
-//        Log.d(TAG, "开始优化图像: ${bitmap.width}x${bitmap.height}")
-//
-//        // 1. 计算缩放比例
-//        val maxDimension = max(bitmap.width, bitmap.height)
-//        val scaleFactor = if (maxDimension > settings.maxImageSize) {
-//            settings.maxImageSize.toFloat() / maxDimension
-//        } else {
-//            1.0f
-//        }
-//
-//        val optimizedBitmap = if (scaleFactor < 1.0f) {
-//            // 2. 缩放图像
-//            val newWidth = (bitmap.width * scaleFactor).toInt()
-//            val newHeight = (bitmap.height * scaleFactor).toInt()
-//
-//            Log.d(TAG, "缩放图像到: ${newWidth}x${newHeight} (缩放比例: ${String.format("%.2f", scaleFactor)})")
-//
-//            Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
-//        } else {
-//            Log.d(TAG, "图像尺寸已符合要求，无需缩放")
-//            bitmap
-//        }
-//
-//        val endTime = System.currentTimeMillis()
-//        Log.d(TAG, "图像优化完成，耗时: ${endTime - startTime}ms")
-//        Log.d(TAG, "优化后尺寸: ${optimizedBitmap.width}x${optimizedBitmap.height}")
-//
-//        return optimizedBitmap
-//    }
+    /**
+     * 优化图像以提升API处理速度
+     * @param bitmap 原始图像
+     * @return 优化后的图像
+     */
+    private fun optimizeImage(bitmap: Bitmap): Bitmap {
+        val settings = settingsManager.getSettings()
+        val startTime = System.currentTimeMillis()
+        Log.d(TAG, "开始优化图像: ${bitmap.width}x${bitmap.height}")
+
+        // 1. 计算缩放比例
+        val maxDimension = max(bitmap.width, bitmap.height)
+        val scaleFactor = if (maxDimension > settings.maxImageSize) {
+            settings.maxImageSize.toFloat() / maxDimension
+        } else {
+            1.0f
+        }
+
+        val optimizedBitmap = if (scaleFactor < 1.0f) {
+            // 2. 缩放图像
+            val newWidth = (bitmap.width * scaleFactor).toInt()
+            val newHeight = (bitmap.height * scaleFactor).toInt()
+
+            Log.d(TAG, "缩放图像到: ${newWidth}x${newHeight} (缩放比例: ${String.format("%.2f", scaleFactor)})")
+
+            Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+        } else {
+            Log.d(TAG, "图像尺寸已符合要求，无需缩放")
+            bitmap
+        }
+
+        val endTime = System.currentTimeMillis()
+        Log.d(TAG, "图像优化完成，耗时: ${endTime - startTime}ms")
+        Log.d(TAG, "优化后尺寸: ${optimizedBitmap.width}x${optimizedBitmap.height}")
+
+        return optimizedBitmap
+    }
     
     /**
      * 使用Gemini进行图像翻译
@@ -102,13 +106,19 @@ class GeminiApiManager(private val context: Context) {
      * @return 翻译结果，包含原文和译文
      */
     suspend fun translateImage(bitmap: Bitmap): TranslationResult? = withContext(Dispatchers.IO) {
+        // 防止重复请求 - 如果正在翻译中，直接返回
+        if (!isTranslating.compareAndSet(false, true)) {
+            Log.w(TAG, "翻译请求已在进行中，跳过重复请求")
+            return@withContext null
+        }
+        
         var optimizedBitmap: Bitmap? = null
         try {
             Log.d(TAG, "开始调用Gemini API进行图像翻译...")
             Log.d(TAG, "原始图像尺寸: ${bitmap.width}x${bitmap.height}")
             
             // 优化图像以提升处理速度
-//            optimizedBitmap = optimizeImage(bitmap)
+            optimizedBitmap = optimizeImage(bitmap)
             Log.d(TAG, "图像优化完成")
             
             // 构建翻译指令
@@ -118,7 +128,7 @@ class GeminiApiManager(private val context: Context) {
             // 构建请求内容 - 使用优化后的图像
             Log.d(TAG, "构建API请求内容...")
             val inputContent = content {
-                image(bitmap)
+                image(optimizedBitmap)
                 text(prompt)
             }
             Log.d(TAG, "API请求内容构建完成，开始发送请求...")
@@ -173,6 +183,10 @@ class GeminiApiManager(private val context: Context) {
                 optimizedBitmap.recycle()
                 Log.d(TAG, "优化后的bitmap已回收")
             }
+            
+            // 重置翻译状态，允许新的翻译请求
+            isTranslating.set(false)
+            Log.d(TAG, "翻译状态已重置，允许新的翻译请求")
         }
     }
     

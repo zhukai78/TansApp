@@ -267,7 +267,6 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
                 setContent {
                     FloatingWindowCompose(
                         onTranslateClick = ::handleTranslateClick,
-                        onRegionTranslateClick = ::handleRegionTranslateClick,
                         onClose = { stopSelf() },
                         onCollapse = ::handleCollapseClick, // 新增：折叠回调
                         onDrag = { dragAmount ->
@@ -432,58 +431,7 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
                 "google_sdk" == Build.PRODUCT
     }
     
-    /**
-     * 处理区域翻译按钮点击事件
-     */
-    private fun handleRegionTranslateClick() {
-        if (isTranslating) {
-            Log.d(TAG, "Translation already in progress, ignoring region translate click")
-            return
-        }
-        
-        Log.d(TAG, "Region translate button clicked")
-        
-        try {
-            // 更新翻译状态
-            updateTranslationState(true, "准备区域选择...")
-            
-            // 截图前先隐藏翻译面板
-            if (translationPanelManager.isShowing()) {
-                Log.d(TAG, "Translation panel is visible, hiding it before region selection")
-                translationPanelManager.hideTranslationResult()
-                handler.postDelayed({
-                    startRegionSelectActivity()
-                }, 800)
-            } else {
-                startRegionSelectActivity()
-            }
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in handleRegionTranslateClick", e)
-            updateTranslationState(false)
-        }
-    }
-    
-    private fun startRegionSelectActivity() {
-        try {
-            updateTranslationState(true, "启动区域选择...")
-            
-            // 启动区域选择Activity
-            val intent = Intent(this, RegionSelectActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            }
-            
-            Log.d(TAG, "Starting RegionSelectActivity")
-            startActivity(intent)
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start RegionSelectActivity", e)
-            updateTranslationState(false)
-            updateNotification("启动区域选择失败，请重试")
-        }
-    }
+
 
     /**
      * 处理翻译按钮点击事件，启动截图Activity
@@ -497,18 +445,20 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
         Log.d(TAG, "Translate button clicked, preparing for screenshot.")
         
         try {
-            // 截图前先隐藏翻译面板，避免截取到之前的翻译内容
+            // 截图前先折叠悬浮窗到右边，避免遮挡屏幕内容
+            Log.d(TAG, "Collapsing floating window before screenshot")
+            handleCollapseClick()
+            
+            // 如果翻译面板显示中，也要隐藏
             if (translationPanelManager.isShowing()) {
                 Log.d(TAG, "Translation panel is visible, hiding it before screenshot")
                 translationPanelManager.hideTranslationResult()
-                // 等待更长时间确保面板完全消失
-                handler.postDelayed({
-                    proceedWithScreenshot()
-                }, 1500)
-            } else {
-                Log.d(TAG, "No translation panel visible, proceeding with screenshot")
-                proceedWithScreenshot()
             }
+            
+            // 等待较短时间确保窗口折叠和面板隐藏完成
+            handler.postDelayed({
+                proceedWithScreenshot()
+            }, 800)
             
         } catch (e: Exception) {
             Log.e(TAG, "Error in handleTranslateClick", e)
@@ -559,11 +509,18 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
     }
     
     /**
-     * 恢复悬浮窗显示（已废弃，现在使用状态管理）
+     * 恢复悬浮窗显示 - 翻译完成后展开折叠的悬浮窗
      */
     fun restoreFloatingWindow() {
         // 重置翻译状态
         updateTranslationState(false)
+        
+        // 如果当前是折叠状态，展开悬浮窗
+        if (isCollapsed) {
+            Log.d(TAG, "Expanding collapsed window after translation")
+            handleExpandClick()
+        }
+        
         Log.d(TAG, "Translation state reset.")
     }
     
