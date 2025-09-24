@@ -24,6 +24,20 @@ This is an Android overlay app powered by Google Gemini for multimodal translati
 - **Multi-Scene Task Templates**: Handles translation, summarization, ingredients/calorie analysis, and more.
 - **Chat Dialog**: Persists history locally and supports long-press to copy individual messages.
 
+## 截图预览 / Screenshots
+> 将下述四张图片放入 `docs/screenshots/` 目录，并命名为：
+> `translate.png`, `wechat.png`, `news.png`, `task-menu.png`。
+> 放置后，GitHub README 将自动展示。
+
+<p align="center">
+  <img src="docs/screenshots/translate.png" alt="快速翻译浮窗 / Quick Translate Overlay" width="45%" />
+  <img src="docs/screenshots/wechat.png" alt="微信/群聊内翻译结果 / Translation in Chat" width="45%" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/news.png" alt="新闻页面摘要 / News Page Summarization" width="45%" />
+  <img src="docs/screenshots/task-menu.png" alt="模式选择与任务模板 / Task Mode Menu" width="45%" />
+</p>
+
 ---
 
 ## 快速开始 / Quick Start
@@ -123,3 +137,15 @@ val result = geminiApiManager.translateImage(bitmap, promptOverride = prompt)
 -   **Low Intrusion**: Retains `PromptMode` and `buildTranslationPrompt()` for backward compatibility.
 -   **Extensible**: Adding new scenarios only requires extending the `AiTask` enum and its corresponding `build...Prompt()` function.
 -   **Localized**: All templates are designed to output in Chinese for the best user experience.
+
+---
+
+## 请我喝杯咖啡 / Buy Me a Coffee
+如果这个项目对你有帮助，欢迎打赏一杯咖啡以支持后续开发与维护：
+
+<p align="center">
+  <img src="docs/donate/alipay.png" alt="支付宝打赏" width="45%" />
+  <img src="docs/donate/wechat.png" alt="微信打赏" width="45%" />
+</p>
+
+> 将两张图片保存到仓库路径：`docs/donate/alipay.png` 与 `docs/donate/wechat.png`，README 将自动显示。
