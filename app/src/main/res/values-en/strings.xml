@@ -1,0 +1,60 @@
+<resources>
+    <string name="app_name">GameTrans</string>
+    <string name="action_go">Go</string>
+    <string name="baking_title">Baking with Gemini</string>
+    <string name="label_prompt">Prompt</string>
+    <string name="prompt_placeholder">Provide a recipe for the baked goods in the image</string>
+    <string name="image1_description">Cupcake</string>
+    <string name="image2_description">Cookies</string>
+    <string name="image3_description">Cake</string>
+    <string name="results_placeholder">(Results will appear here)</string>
+    
+    <!-- Floating window related strings -->
+    <string name="floating_window_title">Translation Floating Window</string>
+    <string name="floating_window_description">Screen translation service is running</string>
+    <string name="permission_required">Overlay permission required</string>
+    <string name="permission_message">Please grant overlay permission to use translation features</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="start_floating_window">Start Floating Window</string>
+    <string name="stop_floating_window">Stop Floating Window</string>
+    <string name="translate_button">Translate</string>
+    
+    <!-- Settings interface related strings -->
+    <string name="settings">Settings</string>
+    <string name="settings_title">App Settings</string>
+    <string name="translation_settings">Translation Settings</string>
+    <string name="prompt_template">Prompt Template</string>
+    <string name="prompt_optimized">Optimized Mode (Fast)</string>
+    <string name="prompt_detailed">Detailed Mode (Accurate)</string>
+    <string name="prompt_custom">Custom Mode</string>
+    <string name="custom_prompt_label">Custom Prompt</string>
+    <string name="custom_prompt_hint">Enter your custom translation prompt here...</string>
+    <string name="image_optimization">Image Optimization</string>
+    <string name="max_image_size">Max Image Size</string>
+    <string name="compression_quality">Compression Quality</string>
+    <string name="save_settings">Save Settings</string>
+    <string name="reset_defaults">Reset to Defaults</string>
+    <string name="settings_saved">Settings Saved</string>
+    <string name="settings_reset">Settings Reset</string>
+    <string name="translation_incomplete_tip">Translation Quality Improvement Tips</string>
+    
+    <!-- MainActivity strings -->
+    <string name="app_subtitle">Smart Screen Translation Assistant</string>
+    <string name="main_features_title">Main Features</string>
+    <string name="main_features_description">• Persistent floating window, always available\n• One-tap screenshot translation\n• Support for region selection translation\n• Integrated Gemini AI intelligent recognition</string>
+    <string name="permission_warning">Translation service requires overlay permission and screen capture permission.</string>
+    <string name="start_translation_service">Start Translation Service</string>
+    <string name="task_status">Task 1: Floating window creation, display, drag and permission request ✓\nTask 2: MediaProjection API screen capture integration ✓</string>
+    
+    <!-- Toast messages -->
+    <string name="permission_granted_starting_service">Permission granted, starting service...</string>
+    <string name="screen_capture_permission_denied">Screen capture permission denied</string>
+    <string name="overlay_permission_denied">Overlay permission denied</string>
+    <string name="floating_window_stopped">Floating window stopped</string>
+    
+    <!-- Language settings -->
+    <string name="language_settings">Language Settings</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_english">English</string>
+    <string name="language_changed">Language changed</string>
+</resources>

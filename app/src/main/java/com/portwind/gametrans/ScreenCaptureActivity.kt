@@ -177,8 +177,14 @@ class ScreenCaptureActivity : ComponentActivity() {
                 return
             }
             
-            // 调用Gemini API进行翻译
-            val result = geminiApiManager.translateImage(bitmap)
+            // 读取来自服务的临时提示词（如果有）
+            val promptOverride = intent.getStringExtra("PROMPT_OVERRIDE")
+            if (!promptOverride.isNullOrBlank()) {
+                Log.d(TAG, "检测到临时提示词长度: ${promptOverride.length}")
+            }
+
+            // 调用Gemini API进行翻译（支持临时提示词覆盖）
+            val result = geminiApiManager.translateImage(bitmap, promptOverride)
             
             if (result != null) {
                 // 任务3要求：在日志中打印翻译结果

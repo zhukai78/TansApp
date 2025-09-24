@@ -35,14 +35,18 @@ class TranslationPanelManager(
     /**
      * 显示翻译结果面板
      */
-    fun showTranslationResult(translationResult: String) {
+    fun showTranslationResult(
+        translationResult: String,
+        onPlayOriginal: (String) -> Unit = {},
+        onPromptTaskSelected: (AiTask) -> Unit = {}
+    ) {
         // 如果面板已存在，先移除
         hideTranslationResult()
         
         try {
             panelLayoutParams = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 } else {
@@ -54,7 +58,7 @@ class TranslationPanelManager(
             ).apply {
                 gravity = Gravity.CENTER
                 x = 0
-                y = -100 // 稍微偏上显示
+                y = 0
             }
             
             translationPanel = ComposeView(context).apply {
@@ -71,7 +75,9 @@ class TranslationPanelManager(
                         onClose = { hideTranslationResult() },
                         onDrag = { dragAmount ->
                             updatePanelPosition(dragAmount.x.toInt(), dragAmount.y.toInt())
-                        }
+                        },
+                        onPlayOriginal = onPlayOriginal,
+                        onPromptTaskSelected = onPromptTaskSelected
                     )
                 }
             }

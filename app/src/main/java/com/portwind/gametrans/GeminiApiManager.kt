@@ -23,6 +23,14 @@ data class TranslationResult(
 )
 
 /**
+ * 文本对话消息
+ */
+data class ChatMessage(
+    val role: String, // "user" | "assistant"
+    val text: String
+)
+
+/**
  * Gemini API管理器
  * 负责处理图像识别和翻译功能
  */
@@ -32,7 +40,6 @@ class GeminiApiManager(private val context: Context) {
         private const val TAG = "GeminiApiManager"
         private const val MODEL_NAME = "gemini-2.5-flash"  // 修正模型名称
         // TODO: 将API密钥配置到local.properties中
-        private const val API_KEY = "YOUR_GEMINI_API_KEY_HERE"
     }
     
     private val settingsManager = SettingsManager(context)
@@ -45,6 +52,35 @@ class GeminiApiManager(private val context: Context) {
             modelName = MODEL_NAME,
             apiKey = getApiKey()
         )
+    }
+
+    /**
+     * 文本多轮对话（简化实现）：
+     * 将历史与当前问题拼接为一个上下文提示，获取助手回复。
+     */
+    suspend fun sendChatMessage(history: List<ChatMessage>, userMessage: String): String? = withContext(Dispatchers.IO) {
+        try {
+            if (getApiKey().isBlank()) return@withContext null
+
+            val sb = StringBuilder()
+            if (history.isNotEmpty()) {
+                sb.appendLine("对话历史：")
+                history.takeLast(20).forEach { msg ->
+                    val prefix = if (msg.role.equals("assistant", true)) "助手" else "用户"
+                    sb.append(prefix).append(": ").appendLine(msg.text.trim())
+                }
+                sb.appendLine("---")
+            }
+            sb.append("用户: ").appendLine(userMessage.trim()).append("助手: ")
+
+            val input = content { text(sb.toString()) }
+            val response = generativeModel.generateContent(input)
+            val text = response.text?.trim()
+            if (text.isNullOrBlank()) null else text
+        } catch (e: Exception) {
+            Log.w(TAG, "sendChatMessage failed", e)
+            null
+        }
     }
     
     /**
@@ -105,7 +141,7 @@ class GeminiApiManager(private val context: Context) {
      * @param bitmap 要翻译的屏幕截图
      * @return 翻译结果，包含原文和译文
      */
-    suspend fun translateImage(bitmap: Bitmap): TranslationResult? = withContext(Dispatchers.IO) {
+    suspend fun translateImage(bitmap: Bitmap, promptOverride: String? = null): TranslationResult? = withContext(Dispatchers.IO) {
         // 防止重复请求 - 如果正在翻译中，直接返回
         if (!isTranslating.compareAndSet(false, true)) {
             Log.w(TAG, "翻译请求已在进行中，跳过重复请求")
@@ -121,8 +157,13 @@ class GeminiApiManager(private val context: Context) {
             optimizedBitmap = optimizeImage(bitmap)
             Log.d(TAG, "图像优化完成")
             
-            // 构建翻译指令
-            val prompt = settingsManager.buildTranslationPrompt()
+            // 构建翻译指令（支持临时覆盖）
+            val prompt = if (!promptOverride.isNullOrBlank()) {
+                Log.d(TAG, "使用临时提示词覆盖设置中的提示词")
+                promptOverride
+            } else {
+                settingsManager.buildTranslationPrompt()
+            }
             Log.d(TAG, "翻译指令构建完成")
             
             // 构建请求内容 - 使用优化后的图像
@@ -302,7 +343,7 @@ class GeminiApiManager(private val context: Context) {
      */
     fun isApiAvailable(): Boolean {
         val key = getApiKey()
-        val isAvailable = key.isNotBlank() && key != API_KEY && key != "YOUR_GEMINI_API_KEY_HERE"
+        val isAvailable = key.isNotBlank() && key != "YOUR_GEMINI_API_KEY_HERE"
         Log.d(TAG, "API可用性: $isAvailable")
         return isAvailable
     }

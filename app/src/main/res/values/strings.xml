@@ -37,4 +37,24 @@
     <string name="settings_saved">设置已保存</string>
     <string name="settings_reset">设置已重置</string>
     <string name="translation_incomplete_tip">翻译质量提升建议</string>
+    
+    <!-- MainActivity strings -->
+    <string name="app_subtitle">智能屏幕翻译助手</string>
+    <string name="main_features_title">主要功能</string>
+    <string name="main_features_description">• 悬浮窗常驻，随时可用\n• 一键屏幕截图翻译\n• 支持区域选择翻译\n• 集成Gemini AI智能识别</string>
+    <string name="permission_warning">启动服务需要悬浮窗权限和屏幕捕获权限。</string>
+    <string name="start_translation_service">启动翻译服务</string>
+    <string name="task_status">任务1：悬浮窗创建、显示、拖动和权限申请 ✓\n任务2：集成MediaProjection API屏幕截图 ✓</string>
+    
+    <!-- Toast messages -->
+    <string name="permission_granted_starting_service">权限已授予，正在启动服务...</string>
+    <string name="screen_capture_permission_denied">屏幕捕获权限被拒绝</string>
+    <string name="overlay_permission_denied">悬浮窗权限被拒绝</string>
+    <string name="floating_window_stopped">悬浮窗已停止</string>
+    
+    <!-- Language settings -->
+    <string name="language_settings">语言设置</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_english">English</string>
+    <string name="language_changed">语言已更改</string>
 </resources>

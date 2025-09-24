@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.Close
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,7 +65,9 @@ fun TranslationResultPanel(
     translationResult: String?,
     isVisible: Boolean = true,
     onClose: () -> Unit = {},
-    onDrag: (Offset) -> Unit = {}
+    onDrag: (Offset) -> Unit = {},
+    onPlayOriginal: (String) -> Unit = {},
+    onPromptTaskSelected: (AiTask) -> Unit = {}
 ) {
     var showPanel by remember(isVisible) { mutableStateOf(isVisible) }
     val clipboardManager = LocalClipboardManager.current
@@ -81,6 +85,9 @@ fun TranslationResultPanel(
     ) {
         Box(
             modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = (configuration.screenHeightDp * 1.0f).dp)
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f))
                 .pointerInput(Unit) {
                     detectDragGestures { _, dragAmount ->
                         onDrag(dragAmount)
@@ -89,24 +96,18 @@ fun TranslationResultPanel(
         ) {
             Card(
                 modifier = Modifier
-                    .widthIn(max = (configuration.screenWidthDp * 0.88).dp) // 减少宽度到88%
-                    .heightIn(max = (configuration.screenHeightDp * 0.65).dp) // 稍微增加高度到65%
-                    .shadow(
-                        16.dp, 
-                        RoundedCornerShape(24.dp),
-                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    )
+                    .fillMaxWidth()
+                    .heightIn(max = (configuration.screenHeightDp * 0.9f).dp)
                     .border(
                         1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        RoundedCornerShape(24.dp)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        RoundedCornerShape(0.dp)
                     ),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(0.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.80f),
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -151,7 +152,7 @@ fun TranslationResultPanel(
                             Spacer(modifier = Modifier.width(12.dp))
                             
                             Text(
-                                text = "翻译结果",
+                                text = "AI结果",
                                 style = MaterialTheme.typography.headlineSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 20.sp
@@ -213,15 +214,15 @@ fun TranslationResultPanel(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = (configuration.screenHeightDp * 0.42).dp)
+                                .heightIn(max = (configuration.screenHeightDp * 0.65f).dp)
                                 .background(
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                    RoundedCornerShape(16.dp)
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                    RoundedCornerShape(12.dp)
                                 )
                                 .border(
                                     1.dp,
                                     MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
-                                    RoundedCornerShape(16.dp)
+                                    RoundedCornerShape(12.dp)
                                 )
                                 .padding(18.dp)
                         ) {
@@ -237,18 +238,41 @@ fun TranslationResultPanel(
                                     val isOriginal = index % 2 == 0 // 偶数索引为原文，奇数索引为译文
                                     
                                     if (isOriginal) {
-                                        // 原文样式（统一为大字体）
-                                        Text(
-                                            text = paragraph.trim(),
-                                            style = MaterialTheme.typography.bodyLarge.copy(
-                                                fontSize = 14.sp,
-                                                lineHeight = 20.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                letterSpacing = 0.3.sp
-                                            ),
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
+                                        // 原文行：文字 + 播放按钮
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = paragraph.trim(),
+                                                style = MaterialTheme.typography.bodyLarge.copy(
+                                                    fontSize = 14.sp,
+                                                    lineHeight = 20.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    letterSpacing = 0.3.sp
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            
+                                            IconButton(
+                                                onClick = { onPlayOriginal(paragraph.trim()) },
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                // 使用文本符号来表示播放图标，避免新增依赖
+                                                Text(
+                                                    text = "▶",
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    style = MaterialTheme.typography.titleSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 14.sp
+                                                    )
+                                                )
+                                            }
+                                        }
                                         
                                         Spacer(modifier = Modifier.height(8.dp))
                                     } else {

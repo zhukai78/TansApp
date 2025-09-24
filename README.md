@@ -1,445 +1,125 @@
-集成Gemini的Android悬浮窗翻译App开发方案 (v2.0)
-1. 项目概述
-   1.1. 项目目标
-   开发一款集成 Google Gemini API 的、专为安卓用户设计的智能屏幕翻译应用。该应用以悬浮窗形式常驻，能够通过 Gemini 的多模态能力，一步完成屏幕截图的文字识别与翻译，为用户在玩外服游戏、使用外语应用时提供无缝、智能的翻译体验。
-
-1.2. 核心功能
-悬浮窗控制：提供可自由拖动、点击交互的悬浮按钮。
-
-一键智能翻译 (Gemini Vision)：一键截取当前屏幕，将图像直接发送给 Gemini API，由其智能识别图中的外语文本（日、英等）并返回中文翻译。
-
-结果整合展示：将 Gemini 返回的翻译结果以清晰、易读的悬浮窗形式展示给用户。
-
-区域翻译：允许用户通过框选，只将屏幕的特定区域截图后发送给 Gemini，实现更精准、更快速的翻译。
-
-（进阶）上下文理解：利用 Gemini 的强大理解能力，未来可扩展出"这是什么道具？"、"这段剧情是什么意思？"等更智能的问答功能。
-
-2. 技术选型 (Gemini 核心版)
-   技术领域
-
-推荐方案
-
-备选方案
-
-理由
-
-开发语言
-
-Kotlin
-
-Java
-
-官方推荐，现代、安全、高效。
-
-UI框架
-
-Jetpack Compose
-
-Android Views (XML)
-
-简化UI开发，尤其适合动态的悬浮窗。
-
-悬浮窗实现
-
-WindowManager + Service
-
--
-
-安卓原生标准方案，保证稳定性和存活率。
-
-屏幕截图
-
-MediaProjection API
-
--
-
-官方推荐，安全可靠。
-
-视觉识别与翻译引擎
-
-Gemini API (多模态)
-
-ML Kit OCR + 第三方翻译API
-
-核心优势：将OCR和翻译合二为一，简化了开发流程。能更好地理解游戏内的复杂背景和艺术字体，潜在准确率更高。为后续的智能问答功能奠定基础。
-
-异步处理
-
-Kotlin Coroutines
-
-RxJava
-
-Kotlin原生异步方案，轻量易用。
-
-网络请求
-
-Retrofit + OkHttp
-
-Ktor
-
-业界标准，稳定可靠，用于调用 Gemini API。
-
-3. 核心功能模块设计
-   模块一：悬浮窗管理模块
-   (与原方案一致)
-
-权限处理：处理 SYSTEM_ALERT_WINDOW 悬浮窗权限。
-
-服务与视图：使用 Foreground Service 和 WindowManager 管理悬浮窗的生命周期、拖动与点击事件。
-
-模块二：屏幕捕获与 Gemini 交互模块 (新)
-截图授权与执行：
-
-首次使用时，通过 MediaProjectionManager 请求屏幕捕获权限并保存授权。
-
-用户点击翻译时，捕获屏幕（或框选区域），得到 Bitmap 对象。
-
-图像处理与API请求：
-
-将 Bitmap 转换为 Base64 编码的字符串或字节数组。
-
-构建发送给 Gemini API 的请求体。这个请求需要包含 图像数据 和 指令文本 (Prompt)。
-
-示例指令 (Prompt)："请将这张图片中的所有日文文本翻译成简体中文，并按段落分行。"
-
-使用 Retrofit 将请求发送到 Gemini API 端点。
-
-处理返回结果：
-
-解析 Gemini API 返回的 JSON 数据，提取出翻译好的文本内容。
-
-Gemini 的返回结果是纯文本，不包含坐标信息。
-
-模块三：翻译结果展示模块 (调整)
-结果展示方式：
-
-由于 Gemini API 不直接返回每个文本块的坐标，原方案中"在原文位置上精确覆盖"的实现变得困难。
-
-推荐方案：创建一个独立的、样式精美的、可拖动的悬浮面板（Overlay Panel），将 Gemini 返回的所有翻译结果完整地显示在其中。用户可以自由阅读、复制文本或关闭该面板。
-
-这种方式虽然牺牲了位置对应的沉浸感，但实现更简单可靠，且能更好地展示大段的翻译内容。
-
-交互设计：
-
-翻译结果面板应包含"关闭"按钮。
-
-可以增加"复制全部"按钮，方便用户保存翻译内容。
-
-面板在显示一段时间后可以设计为自动淡出消失。
-
-4. 开发步骤与时间线（预估）
-[完成] 初期：创建Gemini Starter项目。
-
-   第一阶段：核心原型 (1-2周)
-
-[✅] 任务1：实现悬浮窗的创建、显示、拖动和权限申请。
-
-[✅] 任务2：集成MediaProjection API，实现点击悬浮窗全屏截图。
-
-[✅] 任务3：（新） 学习并接入 Gemini API。实现将截图发送给 Gemini 并获取翻译结果，在日志中打印。
-
-第二阶段：功能闭环 (2-3周)
-
-[✅] 任务4：（新） 设计并实现用于展示翻译结果的悬浮面板UI。
-
-[✅] 任务5：将 Gemini 返回的翻译结果显示在悬浮面板上。
-
-[✅] 任务6：开发基础的设置界面，支持配置Prompt模板、图像优化参数等。
-
-第三阶段：优化与测试 (1-2周)
-
-[❌] 任务7：实现区域框选翻译功能。（已移除）
-
-[ ] 任务8：性能优化，关注网络请求延迟和数据处理效率。
-
-[ ] 任务9：UI/UX优化，美化悬浮窗和结果面板。
-
-[ ] 任务10：进行兼容性测试和Prompt优化，以获得最佳翻译效果。
-
-5. 风险与挑战 (更新)
-   权限兼容性：依然存在，需要大量适配工作。
-
-应用保活：依然存在，需要研究保活技巧。
-
-API 成本与延迟：（新/重点） Gemini API 的调用是网络请求，会产生延迟，影响实时性体验。API调用通常是收费的，需要仔细管理调用频率和成本控制。
-
-Prompt 工程：（新） 翻译的质量高度依赖于你提供给 Gemini 的指令（Prompt）。需要不断测试和优化指令，才能让它在不同场景下都能给出最准确的翻译。
-
-网络环境：应用必须在有网络连接的情况下才能使用，需要处理好网络异常、请求超时等情况。
-
-6. 总结
-   通过集成 Gemini API，这款屏幕翻译应用的技术架构变得更加简洁和强大。它将传统的"OCR+翻译"两步流程，升级为更智能的"图像理解与翻译"一步流程。虽然带来了 API 延迟和成本等新的挑战，但其在翻译质量和未来功能扩展性上的巨大潜力，无疑使它成为一个更具吸引力的开发方向。
-
-## 任务1完成情况
-
-✅ **悬浮窗功能已成功实现**
-
-### 已实现的功能：
-1. **权限管理**：
-   - 添加了悬浮窗权限 (`SYSTEM_ALERT_WINDOW`)
-   - 添加了前台服务权限 (`FOREGROUND_SERVICE`)
-   - 实现了权限检查和申请逻辑
-
-2. **悬浮窗服务**：
-   - 创建了 `FloatingWindowService` 前台服务
-   - 支持 Android API 24+ 兼容性
-   - 实现了通知渠道管理
-
-3. **悬浮窗UI**：
-   - 使用 Jetpack Compose 构建现代化UI
-   - 实现拖动功能（使用 `detectDragGestures`）
-   - 包含标题栏、翻译按钮和关闭按钮
-   - 美观的卡片式设计，带阴影和边框
-
-4. **主界面**：
-   - 权限状态检查和提示
-   - 启动/停止悬浮窗功能
-   - 用户友好的界面设计
-
-### 技术细节：
-- **拖动实现**：使用 `detectDragGestures` 监听拖动事件，更新悬浮窗位置
-- **生命周期管理**：正确实现了 Service 的生命周期和 Compose 的生命周期集成
-- **API兼容性**：支持 Android 7.0 (API 24) 及以上版本
-- **UI组件**：翻译按钮使用中文字符"译"，简洁明了
-
-### 项目文件结构：
-- `FloatingWindowService.kt` - 悬浮窗服务核心逻辑
-- `FloatingWindowCompose.kt` - 悬浮窗UI组件
-- `PermissionHelper.kt` - 权限管理工具类
-- `MainActivity.kt` - 主界面，集成权限申请和服务控制
-
-## 任务3完成情况
-
-✅ **Gemini API集成已成功实现**
-
-### 已实现的功能：
-1. **Gemini API管理器**：
-   - 创建了 `GeminiApiManager` 类，专门处理图像识别和翻译
-   - 使用 Gemini 1.5 Flash 模型，兼顾性能和成本
-   - 支持直接传入 Bitmap 对象进行图像分析
-
-2. **安全的API密钥管理**：
-   - 通过 `local.properties` 配置API密钥，确保密钥安全
-   - 使用 BuildConfig 机制避免硬编码密钥
-   - 创建了 `local.properties.example` 配置示例文件
-
-3. **完整的翻译流程**：
-   - 截图完成后自动调用Gemini API
-   - 智能的翻译指令，专门针对游戏和应用界面优化
-   - 完善的错误处理和日志记录
-
-4. **权限和网络支持**：
-   - 添加了网络访问权限
-   - 添加了Android 13+的通知权限
-   - 兼容性检查和API可用性验证
-
-### 技术实现细节：
-- **AI模型**：Gemini 1.5 Flash（平衡性能与成本）
-- **图像处理**：直接使用Bitmap对象，无需额外转换
-- **异步处理**：使用Kotlin协程确保UI不阻塞
-- **翻译指令**：定制化Prompt，专门优化游戏界面翻译质量
-- **日志输出**：翻译结果在Android Studio Logcat中以 `ScreenCaptureActivity` 标签输出
-
-### 使用说明：
-1. **配置API密钥**：
-   - 复制 `local.properties.example` 为 `local.properties`
-   - 在 [Google AI Studio](https://makersuite.google.com/app/apikey) 获取API密钥
-   - 将密钥配置到 `local.properties` 中的 `GEMINI_API_KEY`
-
-2. **使用流程**：
-   - 启动应用并授予所需权限
-   - 点击悬浮窗的"译"按钮
-   - 应用自动截图并发送给Gemini API
-   - 翻译结果在日志中输出，可在Android Studio Logcat查看
-
-### 项目文件更新：
-- `GeminiApiManager.kt` - 新增Gemini API管理器
-- `ScreenCaptureActivity.kt` - 集成翻译功能调用
-- `app/build.gradle.kts` - 添加API密钥配置支持
-- `AndroidManifest.xml` - 添加网络和通知权限
-- `local.properties.example` - API密钥配置示例
-
-**下一步**：准备进行任务6，开发基础的设置界面。
-
-## 任务4&5完成情况
-
-✅ **翻译结果悬浮面板UI已成功实现**
-
-### 已实现的功能：
-1. **翻译结果面板组件**：
-   - 创建了 `TranslationResultPanel` 组件，美观的卡片式设计
-   - 支持长文本显示，带滚动功能
-   - 动画效果：淡入淡出 + 垂直滑动
-   - 响应式布局：自适应屏幕尺寸（最大90%宽度，60%高度）
-
-2. **面板管理器**：
-   - 创建了 `TranslationPanelManager` 专门管理翻译面板生命周期
-   - 支持拖动功能，带边界检查防止拖出屏幕
-   - 智能资源管理和清理机制
-
-3. **用户交互功能**：
-   - **复制功能**：点击"复制"按钮将翻译结果复制到剪贴板
-   - **手动关闭**：点击"X"按钮手动关闭面板
-   - **拖动支持**：用户可以自由拖动面板位置
-
-4. **集成到现有系统**：
-   - 修改了 `FloatingWindowService` 支持显示翻译面板
-   - 修改了 `ScreenCaptureActivity` 在翻译完成后显示结果面板
-   - 完整的服务间通信机制
-
-### 技术细节：
-- **UI设计**：Material Design 3风格，与现有悬浮窗保持一致
-- **动画效果**：使用 Compose 动画 API，提供流畅的用户体验
-- **性能优化**：高效的状态管理和生命周期处理
-- **用户体验**：
-  - 智能定位：默认在屏幕中心偏上显示
-  - 内容滚动：支持长文本内容的垂直滚动
-  - 视觉反馈：清晰的按钮状态和颜色主题
-
-### 项目文件更新：
-- `TranslationResultPanel.kt` - 新增翻译结果面板UI组件
-- `TranslationPanelManager.kt` - 新增面板管理器
-- `FloatingWindowService.kt` - 集成面板管理，添加显示翻译结果功能
-- `ScreenCaptureActivity.kt` - 翻译完成后调用面板显示
-
-### 使用流程：
-1. 用户点击悬浮窗的"译"按钮
-2. 应用自动截图并发送给Gemini API
-3. 翻译完成后，自动显示翻译结果悬浮面板
-4. 用户可以：
-   - 阅读翻译结果（支持滚动）
-   - 点击"复制"按钮复制全部内容
-   - 手动关闭面板或等待自动隐藏
-
-### 测试验证：
-- ✅ 项目编译成功，无编译错误
-- ✅ 翻译面板UI组件完整实现
-- ✅ 面板管理器功能完整
-- ✅ 与现有服务集成成功
-
-## 任务2完成情况
-
-✅ **屏幕截图功能已成功实现**
-
-### 已实现的功能：
-1. **权限管理增强**：
-   - 添加了屏幕录制权限 (`FOREGROUND_SERVICE_MEDIA_PROJECTION`)
-   - 实现了MediaProjection权限申请流程
-   - 支持权限状态检查和管理
-
-2. **ScreenCaptureManager**：
-   - 使用MediaProjection API实现屏幕捕获
-   - 支持全屏截图，获取Bitmap对象
-   - 兼容Android 7.0+ (API 24+)，优化了API 30+的兼容性
-   - 实现了完整的资源管理和清理机制
-
-3. **用户界面优化**：
-   - 主界面显示所有权限状态（悬浮窗权限 + 屏幕捕获权限）
-   - 智能权限申请流程，按顺序申请所需权限
-   - 详细的权限状态提示和错误处理
-
-4. **悬浮窗集成**：
-   - 翻译按钮现在能够实际执行屏幕截图
-   - 显示截图进度提示和结果反馈
-   - 完善的错误处理和用户提示
-
-### 技术细节：
-- **MediaProjection API**：使用官方推荐的屏幕捕获方案
-- **异步处理**：使用Kotlin协程处理截图操作，避免阻塞UI
-- **兼容性处理**：针对不同Android版本使用适当的API
-- **资源管理**：正确处理VirtualDisplay和ImageReader的生命周期
-- **错误处理**：完善的异常捕获和用户友好的错误提示
-
-### 项目文件更新：
-- `ScreenCaptureManager.kt` - 新增屏幕截图管理器
-- `MainActivity.kt` - 集成屏幕捕获权限管理
-- `FloatingWindowService.kt` - 实现截图功能调用
-- `AndroidManifest.xml` - 添加屏幕录制权限
-
-### 测试验证：
-- ✅ 项目构建成功，无编译错误
-- ✅ 权限申请流程完整
-- ✅ 悬浮窗翻译按钮能够触发截图功能
-- ✅ 截图成功后显示图像尺寸信息
-
-**下一步**：准备进行任务3，集成 Gemini API 将截图发送给AI进行文字识别与翻译。
-
-## 任务6完成情况
-
-✅ **基础设置界面已成功实现**
-
-### 已实现的功能：
-1. **设置界面UI**：
-   - 创建了现代化的设置界面，与应用主界面保持一致的设计风格
-   - 使用TopAppBar和卡片式布局，提供清晰的设置分组
-   - 支持滚动的内容区域，适配不同屏幕尺寸
-
-2. **设置管理器**：
-   - 创建了`SettingsManager`类，基于SharedPreferences进行配置存储
-   - 支持类型安全的设置数据类`AppSettings`
-   - 提供完整的设置读取、保存和重置功能
-
-3. **Prompt模板配置**：
-   - 支持两种翻译模式：**优化模式**（快速处理）和**详细模式**（准确度更高）
-   - 优化模式使用简洁的提示词，适合实时翻译场景
-   - 详细模式使用完整的提示词，提供更高的翻译准确度
-
-4. **图像优化参数配置**：
-   - **最大图像尺寸**：可调节范围512px-2048px，影响API处理速度和质量
-   - **压缩质量**：可调节范围60%-100%，平衡图像质量和传输速度
-
-5. **用户友好的交互**：
-   - 提供"保存设置"和"恢复默认"按钮
-   - 实时显示参数值和单位
-   - 设置保存后显示确认提示
-
-6. **与现有系统集成**：
-   - 主界面添加设置图标，一键进入设置页面
-   - GeminiApiManager自动读取设置参数，应用到实际翻译过程
-   - 设置变更即时生效，无需重启应用
-
-### 技术实现细节：
-- **数据持久化**：使用SharedPreferences安全存储用户配置
-- **UI组件**：RadioButton选择器、Slider滑块、自定义卡片布局
-- **状态管理**：使用Compose的状态管理，确保UI与数据同步
-- **参数验证**：合理的参数范围限制，防止无效配置
-
-### 项目文件更新：
-- `SettingsManager.kt` - 新增设置管理器，提供完整的配置管理功能
-- `SettingsScreen.kt` - 新增设置界面UI组件
-- `MainActivity.kt` - 集成设置入口，支持设置界面导航
-- `GeminiApiManager.kt` - 集成设置参数，动态调整API行为
-- `strings.xml` - 添加设置界面相关的多语言字符串
-
-### 设置功能验证：
-- ✅ 设置界面UI完整实现
-- ✅ 参数持久化存储正常
-- ✅ Prompt模板切换功能正常
-- ✅ 图像优化参数调节有效
-- ✅ 与现有翻译流程无缝集成
-
-
-### 重要优化：
-- ✅ **智能截图过滤**：在截图前自动隐藏翻译面板，确保截图内容不包含之前的翻译结果，避免翻译内容混乱
-- ✅ **翻译质量提升**：优化Prompt指令，提高AI识别文字的完整性和准确度
-- ✅ **图像质量改进**：提高默认图像尺寸(1536px)和压缩质量(90%)，改善小文字识别效果
-
-### 翻译完整性解决方案：
-**问题诊断**：如果遇到翻译内容不全的情况，通常是以下原因：
-1. **Prompt指令不够详细** → 已优化为更全面的扫描指令
-2. **图像质量过低** → 已提高默认质量设置
-3. **识别模式不匹配** → 可在设置中切换详细模式
-
-**优化措施**：
-- **新Prompt指令**：强调识别"ALL所有文字"，覆盖UI元素、小字体、图标文字等
-- **提高图像质量**：默认最大尺寸从1024px提升到1536px，压缩质量从85%提升到90%
-- **详细识别范围**：明确指定7大类文字内容（主内容、界面元素、小字体、交互元素、图标文字、边缘内容、游戏专属）
-- **语言覆盖增强**：明确支持日语、英语、韩语、繁体中文等多种语言
-- **排序要求**：按照屏幕位置顺序(从上到下，从左到右)输出翻译结果
-
-**用户操作建议**：
-1. 如翻译不全 → 设置界面切换到「详细模式」
-2. 小文字不清晰 → 调高「最大图像尺寸」到1536px或2048px  
-3. 图像质量差 → 提高「压缩质量」到90%以上
-
-**下一步**：区域翻译功能已移除，可以继续进行任务9（UI/UX优化）或任务10（兼容性测试）。
+# GameTrans — An Android Overlay Translator & AI Assistant powered by Gemini
+## 集成Gemini的Android悬浮窗翻译与AI助手
+
+### 简体中文简介
+本项目是一个基于 Android 的悬浮窗智能翻译与多场景图片理解应用，集成 Google Gemini 多模态能力。它支持一键截图并进行文字识别与翻译，结果通过悬浮面板展示；同时内置多种任务模板（如屏幕摘要、配料表分析、卡路里分析等），可快速对截图内容进行专业化的中文输出。应用提供设置面板用于调节提示词与图像优化参数，并支持对话模式（本地保存历史、长按复制单条消息）。
+
+### English Overview
+This is an Android overlay app powered by Google Gemini for multimodal translation and image understanding. It captures the screen with one tap, translates detected foreign texts, and displays results in an elegant overlay panel. The app also ships with multiple prompt templates (e.g., screen summarization, ingredients analysis, calorie analysis) to generate concise, Chinese-first outputs. A settings screen lets you tune prompts and image parameters, while the chat dialog supports local history persistence and long-press copy for individual messages.
+
+---
+
+## 关键特性 / Key Features
+- **悬浮窗控制与前台服务**：常驻、可拖动、交互自然
+- **一键截图与AI处理**：直接将截图与任务指令发送至 Gemini 模型
+- **结果悬浮面板**：滚动阅读、复制、动画过渡、资源管理完善
+- **设置中心**：提示词模式与图像优化（最大尺寸/压缩质量）即时生效
+- **多场景任务模板**：翻译、摘要、配料表/卡路里分析等
+- **对话模式**：本地保存历史、长按复制单条消息
+
+- **Overlay Control & Foreground Service**: Persistent, draggable, and interactive.
+- **One-Tap Screenshot & AI Processing**: Sends the captured bitmap and task prompt directly to the Gemini model.
+- **Result Overlay Panel**: Features scrolling for long text, copy-to-clipboard, smooth animations, and robust resource management.
+- **Settings Center**: Instantly applies changes to prompt modes and image optimization (max size/compression).
+- **Multi-Scene Task Templates**: Handles translation, summarization, ingredients/calorie analysis, and more.
+- **Chat Dialog**: Persists history locally and supports long-press to copy individual messages.
+
+---
+
+## 快速开始 / Quick Start
+1.  在 Android Studio 中打开项目 (需要 Android 7.0+)。
+2.  在 `local.properties` 文件中配置你的 API 密钥: `GEMINI_API_KEY=your_key`。
+3.  同步、构建并在设备上运行。
+4.  授予悬浮窗和屏幕捕获权限。
+5.  点击悬浮窗按钮进行截图和处理；可在设置中切换不同的AI任务。
+6.  使用对话窗口提问；历史记录会自动保存，长按消息可复制。
+
+1.  Open the project in Android Studio (requires Android 7.0+).
+2.  Configure your API key in the `local.properties` file: `GEMINI_API_KEY=your_key`.
+3.  Sync, build, and run on a device.
+4.  Grant the overlay and screen capture permissions.
+5.  Tap the floating button to capture and process the screen; you can switch AI tasks in the Settings.
+6.  Use the chat dialog for questions; history is saved automatically, and you can long-press a message to copy it.
+
+---
+
+## 开发日志摘要 / Development Log Summary
+
+### Task 1: 悬浮窗 / Floating Window
+-   **✅ 状态: 完成** / **Status: Complete**
+-   **特性**: 权限处理 (`SYSTEM_ALERT_WINDOW`, `FOREGROUND_SERVICE`), 用于生命周期管理的前台服务 (`FloatingWindowService`), 以及使用 Jetpack Compose 构建的可拖动 UI。
+-   **Features**: Permission handling, a foreground service (`FloatingWindowService`) for lifecycle management, and a draggable UI built with Jetpack Compose.
+
+### Task 2: 屏幕截图 / Screen Capture
+-   **✅ 状态: 完成** / **Status: Complete**
+-   **特性**: 增强的权限管理 (`FOREGROUND_SERVICE_MEDIA_PROJECTION`), 使用 MediaProjection API 的 `ScreenCaptureManager`, 并与悬浮窗集成以触发截图。
+-   **Features**: Enhanced permission management, a `ScreenCaptureManager` using the MediaProjection API, and integration with the floating window to trigger captures.
+
+### Task 3: Gemini API 集成 / Gemini API Integration
+-   **✅ 状态: 完成** / **Status: Complete**
+-   **特性**: 用于处理图像翻译的 `GeminiApiManager`, 通过 `local.properties` 和 `BuildConfig` 进行的安全API密钥管理, 以及截图后触发的完整翻译流程。
+-   **Features**: A `GeminiApiManager` for image translation, secure API key management via `local.properties` and `BuildConfig`, and a complete translation pipeline triggered after a screenshot.
+
+### Tasks 4 & 5: 结果面板UI / Result Panel UI
+-   **✅ 状态: 完成** / **Status: Complete**
+-   **特性**: 采用 Material Design 3 风格的 `TranslationResultPanel` 组件，支持动画和长文本滚动。`TranslationPanelManager` 处理其生命周期和拖动手势。
+-   **Features**: A `TranslationResultPanel` component with Material Design 3 styling, animations, and scrolling for long text. A `TranslationPanelManager` handles its lifecycle and drag gestures.
+
+### Task 6: 设置界面 / Settings Screen
+-   **✅ 状态: 完成** / **Status: Complete**
+-   **特性**: 用于配置提示词模式 (优化、详细、自定义) 和图像参数 (最大尺寸、压缩质量) 的设置UI。`SettingsManager` 使用 `SharedPreferences` 持久化这些选项。
+-   **Features**: A settings UI to configure prompt modes (Optimized, Detailed, Custom) and image parameters (max size, compression quality). A `SettingsManager` persists these choices using `SharedPreferences`.
+
+### 优化与解决方案 / Optimizations & Solutions
+-   **智能截图过滤**: 截图前自动隐藏翻译面板，避免其出现在截图中。
+-   **质量改进**: 提高了默认图像尺寸和压缩质量以改善文本识别效果，并优化了提示词以提高准确性。
+-   **问题排查**: 如果翻译不完整，用户可以切换到“详细模式”或在设置中提高图像质量。
+-   **Smart Filtering**: The translation panel is now hidden before capturing the screen to prevent it from appearing in the screenshot.
+-   **Quality Improvements**: Default image size and compression quality have been increased to improve text recognition, and prompts have been refined for better accuracy.
+-   **Troubleshooting**: If translations are incomplete, users can switch to "Detailed Mode" or increase image quality settings.
+
+---
+
+## 多场景AI任务模板 / Multi-Scene AI Task Templates
+`SettingsManager` 提供了多种内置提示词模板，可通过 `buildPrompt(task: AiTask)` 访问。
+
+`SettingsManager` provides a variety of built-in prompt templates for different tasks, accessible via `buildPrompt(task: AiTask)`.
+
+### 支持的任务类型 / Supported Task Types
+-   **翻译 / Translation**
+    -   `TRANSLATE_OPTIMIZED`: 快速翻译，速度优先 (Fast translation, prioritizing speed).
+    -   `TRANSLATE_DETAILED`: 高精度翻译 (High-accuracy translation).
+-   **内容创作与摘要 / Content Creation & Summarization**
+    -   `SUMMARIZE_SCREEN`: 将屏幕内容总结为中文要点 (Summarizes the screen content into key points in Chinese).
+    -   `REPHRASE_TO_CN`: 润色图片中的中文文本 (Polishes Chinese text from the image).
+    -   `TLDR_KEYPOINTS`: 提取3-5个超简要点 (Extracts 3-5 ultra-concise key points).
+-   **专业领域分析 / Domain-Specific Analysis**
+    -   `ANALYZE_MEDICAL_IMAGE`: 医疗影像初步分析 (Preliminary analysis of medical images).
+    -   `ANALYZE_CHART`: 解读图表，识别趋势与洞察 (Interprets charts to identify trends and insights).
+    -   `INGREDIENTS_ANALYSIS`: 分析配料表并标记潜在有害物质 (Analyzes ingredient lists and flags potentially harmful substances).
+    -   `CALORIE_ANALYSIS`: 从包装估算卡路里和营养信息 (Estimates calories and nutritional information from packaging).
+    -   `IDENTIFY_PLANT_ANIMAL`: 识别动植物 (Identifies plants and animals).
+    -   `IDENTIFY_DISH_AND_RECIPE`: 识别菜肴并提供示例食谱 (Identifies dishes and provides a sample recipe).
+
+### 使用方式 / Usage
+默认翻译流程不变。要使用特定任务提示词：
+The default translation flow remains unchanged. To use a specific task prompt:
+```kotlin
+// 获取特定任务的提示词 / Get the prompt for a specific task
+val settings = SettingsManager(context)
+val prompt = settings.buildPrompt(AiTask.SUMMARIZE_SCREEN)
+
+// 调用API时作为覆盖参数传入 / Pass it as an override when calling the API
+val result = geminiApiManager.translateImage(bitmap, promptOverride = prompt)
+```
+
+### 设计原则与实践 / Design Principles
+-   **统一入口**: 通过 `AiTask` 与 `buildPrompt(task)` 统一管理模板。
+-   **低侵入**: 保留原有 `PromptMode` 与 `buildTranslationPrompt()` 以确保向后兼容。
+-   **可扩展**: 新增场景仅需在 `AiTask` 与对应 `build...Prompt()` 中扩展。
+-   **本地化**: 所有模板均以中文输出以优化体验。
+
+-   **Unified Entry Point**: Manages all templates via `AiTask` and `buildPrompt(task)`.
+-   **Low Intrusion**: Retains `PromptMode` and `buildTranslationPrompt()` for backward compatibility.
+-   **Extensible**: Adding new scenarios only requires extending the `AiTask` enum and its corresponding `build...Prompt()` function.
+-   **Localized**: All templates are designed to output in Chinese for the best user experience.

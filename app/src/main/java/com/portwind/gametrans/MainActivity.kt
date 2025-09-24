@@ -19,11 +19,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +53,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     
     private lateinit var permissionHelper: PermissionHelper
+    private lateinit var settingsManager: SettingsManager
     private var showSettings by mutableStateOf(false)
     
     // 屏幕捕获权限结果处理
@@ -56,7 +61,7 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            Toast.makeText(this, "权限已授予，正在启动服务...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.permission_granted_starting_service), Toast.LENGTH_SHORT).show()
             
             // 将权限授予结果通过Intent发送给Service
             val intent = Intent(this, FloatingWindowService::class.java).apply {
@@ -71,7 +76,7 @@ class MainActivity : ComponentActivity() {
                 startService(intent)
             }
         } else {
-            Toast.makeText(this, "屏幕捕获权限被拒绝", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.screen_capture_permission_denied), Toast.LENGTH_LONG).show()
         }
     }
     
@@ -79,6 +84,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         permissionHelper = PermissionHelper(this)
+        settingsManager = SettingsManager(this)
+        
+        // 应用保存的语言设置
+        settingsManager.applyLanguage(settingsManager.getLanguage())
         
         setContent {
             GameTransTheme {
@@ -98,7 +107,13 @@ class MainActivity : ComponentActivity() {
                             onStartFloatingWindow = ::startOrRequestPermissions,
                             onStopFloatingWindow = ::stopFloatingWindow,
                             onOpenSettings = { showSettings = true },
-                            hasOverlayPermission = permissionHelper.hasOverlayPermission(this)
+                            onLanguageChanged = { language ->
+                                settingsManager.setLanguage(language)
+                                Toast.makeText(this@MainActivity, getString(R.string.language_changed), Toast.LENGTH_SHORT).show()
+                                recreate()
+                            },
+                            hasOverlayPermission = permissionHelper.hasOverlayPermission(this),
+                            currentLanguage = settingsManager.getLanguage()
                         )
                     }
                 }
@@ -117,7 +132,7 @@ class MainActivity : ComponentActivity() {
                     // 成功后再请求截图权限
                     requestScreenCapturePermission()
                 } else {
-                    Toast.makeText(this, "悬浮窗权限被拒绝", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, getString(R.string.overlay_permission_denied), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -125,7 +140,7 @@ class MainActivity : ComponentActivity() {
     
     private fun stopFloatingWindow() {
         FloatingWindowService.stop(this)
-        Toast.makeText(this, "悬浮窗已停止", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.floating_window_stopped), Toast.LENGTH_SHORT).show()
     }
     
     private fun requestScreenCapturePermission() {
@@ -140,7 +155,9 @@ fun MainScreen(
     onStartFloatingWindow: () -> Unit = {},
     onStopFloatingWindow: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
-    hasOverlayPermission: Boolean = false
+    onLanguageChanged: (AppLanguage) -> Unit = {},
+    hasOverlayPermission: Boolean = false,
+    currentLanguage: AppLanguage = AppLanguage.CHINESE
 ) {
     Column(
         modifier = Modifier
@@ -149,7 +166,7 @@ fun MainScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // 标题栏和设置按钮
+        // 标题栏和按钮
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -163,19 +180,30 @@ fun MainScreen(
                 color = MaterialTheme.colorScheme.primary
             )
             
-            IconButton(onClick = onOpenSettings) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = stringResource(R.string.settings),
-                    tint = MaterialTheme.colorScheme.primary
+            Row {
+                // 语言切换按钮
+                LanguageSelector(
+                    currentLanguage = currentLanguage,
+                    onLanguageChanged = onLanguageChanged
                 )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // 设置按钮
+                IconButton(onClick = onOpenSettings) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = stringResource(R.string.settings),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
         
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = "智能屏幕翻译助手",
+            text = stringResource(R.string.app_subtitle),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -195,7 +223,7 @@ fun MainScreen(
                 modifier = Modifier.padding(20.dp)
             ) {
                 Text(
-                    text = "主要功能",
+                    text = stringResource(R.string.main_features_title),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
@@ -205,10 +233,7 @@ fun MainScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 Text(
-                    text = "• 悬浮窗常驻，随时可用\n" +
-                          "• 一键屏幕截图翻译\n" +
-                          "• 支持区域选择翻译\n" +
-                          "• 集成Gemini AI智能识别",
+                    text = stringResource(R.string.main_features_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.4
@@ -227,7 +252,7 @@ fun MainScreen(
                 )
             ) {
                 Text(
-                    text = "启动服务需要悬浮窗权限和屏幕捕获权限。",
+                    text = stringResource(R.string.permission_warning),
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer,
@@ -244,7 +269,7 @@ fun MainScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "启动翻译服务",
+                text = stringResource(R.string.start_translation_service),
                 style = MaterialTheme.typography.labelLarge
             )
         }
@@ -264,12 +289,42 @@ fun MainScreen(
         Spacer(modifier = Modifier.height(24.dp))
         
         Text(
-            text = "任务1：悬浮窗创建、显示、拖动和权限申请 ✓\n" +
-                   "任务2：集成MediaProjection API屏幕截图 ✓",
+            text = stringResource(R.string.task_status),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+fun LanguageSelector(
+    currentLanguage: AppLanguage,
+    onLanguageChanged: (AppLanguage) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    IconButton(onClick = { expanded = true }) {
+        Icon(
+            imageVector = Icons.Filled.Language,
+            contentDescription = stringResource(R.string.language_settings),
+            tint = MaterialTheme.colorScheme.primary
+        )
+    }
+    
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false }
+    ) {
+        AppLanguage.values().forEach { language ->
+            DropdownMenuItem(
+                text = { Text(language.displayName) },
+                onClick = {
+                    onLanguageChanged(language)
+                    expanded = false
+                }
+            )
+        }
     }
 }
 

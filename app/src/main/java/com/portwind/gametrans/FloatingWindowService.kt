@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.Lifecycle
@@ -34,6 +35,8 @@ import android.view.View
 import android.os.Handler
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
+import android.speech.tts.TextToSpeech
+import java.util.Locale
 
 class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStoreOwner {
     private lateinit var windowManager: WindowManager
@@ -44,13 +47,21 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
     private var isCollapsed = false // 新增：折叠状态标志
     private var isTranslating = false // 新增：翻译状态标志
     private var translationProgress = "" // 新增：翻译进度文本
+    private var promptOverride: String? = null // 新增：本次临时提示词
+    private var currentTask: AiTask = AiTask.TRANSLATE_OPTIMIZED // 新增：当前任务类型
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
     private val _viewModelStore = ViewModelStore()
     
     private lateinit var screenCaptureManager: ScreenCaptureManager
     private lateinit var translationPanelManager: TranslationPanelManager
+    private lateinit var chatWindowManager: ChatWindowManager
+    private lateinit var promptWindowManager: PromptWindowManager
     private val handler = Handler()
+    private var tts: TextToSpeech? = null
+    private var ttsReady: Boolean = false
+    private var ttsInitAttempts: Int = 0
+    private val preferredTtsEngine = "com.google.android.tts"
     
     private val restoreReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -110,6 +121,30 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         screenCaptureManager = ScreenCaptureManager.getInstance(this)
         translationPanelManager = TranslationPanelManager(this, this, this, this)
+        chatWindowManager = ChatWindowManager(
+            context = this,
+            lifecycleOwner = this,
+            viewModelStoreOwner = this,
+            savedStateRegistryOwner = this,
+            coroutineScope = lifecycleScope,
+            onSendMessage = { message: String, history: List<ChatMessage> ->
+                // Note: GeminiApiManager().sendChatMessage needs history.
+                // We're adapting the signature here.
+                GeminiApiManager(this).sendChatMessage(history, message)
+            }
+        )
+        promptWindowManager = PromptWindowManager(
+            context = this,
+            lifecycleOwner = this,
+            viewModelStoreOwner = this,
+            savedStateRegistryOwner = this,
+            coroutineScope = lifecycleScope,
+            onConfirm = { prompt ->
+                handlePromptChanged(prompt)
+            }
+        )
+        // 初始化TTS
+        initTts(preferEngine = true)
         
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification("服务运行中"))
@@ -119,7 +154,13 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
             addAction("com.portwind.gametrans.RESTORE_FLOATING_WINDOW")
             addAction("com.portwind.gametrans.HIDE_TRANSLATION_PANEL")
         }
-        registerReceiver(restoreReceiver, filter)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(restoreReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(restoreReceiver, filter)
+        }
         
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
@@ -158,8 +199,14 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
                     // 显示翻译完成状态
                     updateTranslationState(true, "翻译完成")
                     
-                    // 显示翻译结果面板
-                    translationPanelManager.showTranslationResult(translationResult)
+                    // 显示翻译结果面板（带原文播放回调）
+                    translationPanelManager.showTranslationResult(
+                        translationResult,
+                        onPlayOriginal = { text -> speakOriginal(text) },
+                        onPromptTaskSelected = { task ->
+                            handlePromptTaskSelected(task)
+                        }
+                    )
                     
                     // 延迟重置状态，让用户看到"翻译完成"
                     handler.postDelayed({
@@ -180,6 +227,15 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
         // 不要在服务销毁时释放单例的ScreenCaptureManager
         // screenCaptureManager.release() 
         translationPanelManager.release()
+        // 关闭TTS
+        try {
+            tts?.stop()
+            tts?.shutdown()
+            ttsReady = false
+            ttsInitAttempts = 0
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to shutdown TTS", e)
+        }
         
         // 注销广播接收器
         try {
@@ -223,7 +279,7 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
         return builder
             .setContentTitle(getString(R.string.floating_window_title))
             .setContentText(contentText)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic)
             .setContentIntent(pendingIntent)
             .build()
     }
@@ -273,7 +329,10 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
                             updateWindowPosition(dragAmount.x.toInt(), dragAmount.y.toInt())
                         },
                         isTranslating = isTranslating,
-                        translationProgress = translationProgress
+                        translationProgress = translationProgress,
+                        onPromptTaskSelected = { task -> handlePromptTaskSelected(task) },
+                        onAskClicked = { handleAskClicked() },
+                        onPromptDialogClicked = { handlePromptDialogClicked() }
                     )
                 }
             }
@@ -399,15 +458,14 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
     private fun updateCollapsedWindowPosition(deltaX: Int, deltaY: Int) {
         collapsedView?.let { view ->
             try {
-                collapsedLayoutParams.x += deltaX
+                // 只允许垂直方向移动，保持贴边（右侧）
                 collapsedLayoutParams.y += deltaY
                 
                 // 边界检查，确保小长条不会拖出屏幕
                 val displayMetrics = resources.displayMetrics
                 val maxY = displayMetrics.heightPixels - view.height
-                
-                // 限制X轴只能在屏幕右侧移动
-                collapsedLayoutParams.x = collapsedLayoutParams.x.coerceIn(-100, 100)
+                // X 固定为 0，始终贴右侧（因为 gravity = TOP|END）
+                collapsedLayoutParams.x = 0
                 collapsedLayoutParams.y = collapsedLayoutParams.y.coerceIn(0, maxY)
                 
                 windowManager.updateViewLayout(view, collapsedLayoutParams)
@@ -489,6 +547,14 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
                         addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
                         // 传递标志，告诉Activity需要恢复悬浮窗
                         putExtra("RESTORE_FLOATING_WINDOW", true)
+                        // 优先使用抽屉选择的任务模板（若未填写临时提示词）
+                        val settings = SettingsManager(this@FloatingWindowService)
+                        val taskPrompt = settings.buildPrompt(currentTask)
+                        val finalPrompt = when {
+                            !promptOverride.isNullOrBlank() -> promptOverride!!
+                            else -> taskPrompt
+                        }
+                        putExtra("PROMPT_OVERRIDE", finalPrompt)
                     }
                     
                     Log.d(TAG, "Starting ScreenCaptureActivity with intent: $intent")
@@ -538,6 +604,61 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
         }, 15000) // 15秒超时，给API调用更多时间
     }
 
+    private fun handleAskClicked() {
+        if (!chatWindowManager.isShowing()) {
+            chatWindowManager.show()
+        }
+    }
+
+    private fun handlePromptDialogClicked() {
+        if (!promptWindowManager.isShowing()) {
+            promptWindowManager.show()
+        }
+    }
+
+    private fun handlePromptChanged(prompt: String) {
+        promptOverride = prompt
+        Log.d(TAG, "临时提示词已设置: $prompt")
+        Toast.makeText(this, "临时提示词已设置", Toast.LENGTH_SHORT).show()
+    }
+
+    // 处理面板上的任务选择，更新当前任务并清空仅一次的输入覆盖
+    private fun handlePromptTaskSelected(task: AiTask) {
+        try {
+            currentTask = task
+            // 用户主动选择了模板，则清空一次性输入覆盖，避免混淆
+            promptOverride = null
+            Toast.makeText(this, "已切换: ${'$'}{task.displayName}", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.w(TAG, "handlePromptTaskSelected failed", e)
+        }
+    }
+
+    // 处理输入框焦点，控制软键盘显示与隐藏
+    private fun handlePromptFocusChange(focused: Boolean) {
+        try {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            val view = floatingView
+            if (focused) {
+                // 允许窗口获取焦点并接收输入
+                layoutParams.flags = layoutParams.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+                layoutParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN or WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+                view?.let { v ->
+                    windowManager.updateViewLayout(v, layoutParams)
+                    imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+                }
+            } else {
+                // 失焦后恢复不可聚焦，避免抢占全局输入
+                layoutParams.flags = layoutParams.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                layoutParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN
+                view?.let { v -> windowManager.updateViewLayout(v, layoutParams) }
+                imm.hideSoftInputFromWindow(view?.windowToken, 0)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "handlePromptFocusChange failed", e)
+        }
+    }
+
     private fun removeFloatingWindow() {
         floatingView?.let { view ->
             try {
@@ -560,6 +681,102 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
                 Log.w(TAG, "Failed to remove collapsed window", e)
             }
             collapsedView = null
+        }
+    }
+
+    // 使用系统TTS朗读原文
+    private fun speakOriginal(text: String) {
+        try {
+            val engine = tts ?: run {
+                Toast.makeText(this, "TTS未可用，正在初始化…", Toast.LENGTH_SHORT).show()
+                initTts(preferEngine = true)
+                return
+            }
+            if (!ttsReady) {
+                Toast.makeText(this, "TTS未就绪，正在重试…", Toast.LENGTH_SHORT).show()
+                initTts(preferEngine = false)
+                return
+            }
+            engine.stop()
+            // 简单语言识别：日文假名则设置日语，否则使用系统默认
+            val containsKana = text.any { ch ->
+                (ch in '\u3040'..'\u309F') || (ch in '\u30A0'..'\u30FF')
+            }
+            val preferred = if (containsKana) Locale.JAPAN else Locale.CHINA
+            val res = try { engine.setLanguage(preferred) } catch (e: Exception) { Log.w(TAG, "setLanguage failed", e); TextToSpeech.LANG_AVAILABLE }
+            if (res == TextToSpeech.LANG_MISSING_DATA || res == TextToSpeech.LANG_NOT_SUPPORTED) {
+                try { engine.setLanguage(Locale.US) } catch (_: Exception) {}
+            }
+            engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "orig_${'$'}{System.currentTimeMillis()}")
+        } catch (e: Exception) {
+            Log.w(TAG, "speakOriginal failed", e)
+        }
+    }
+
+    // =================== TTS 辅助逻辑 ===================
+    private fun initTts(preferEngine: Boolean) {
+        try {
+            // 避免重复创建
+            tts?.let { existing ->
+                try { existing.stop(); existing.shutdown() } catch (_: Exception) {}
+            }
+            tts = null
+            ttsReady = false
+
+            val usePreferred = preferEngine && isPackageInstalled(preferredTtsEngine)
+            ttsInitAttempts += 1
+            Log.d(TAG, "Initializing TTS (attempt ${'$'}ttsInitAttempts), prefer=${'$'}usePreferred")
+
+            val listener = TextToSpeech.OnInitListener { status ->
+                Log.d(TAG, "TTS init status: ${'$'}status")
+                if (status == TextToSpeech.SUCCESS) {
+                    try {
+                        val langRes = tts?.setLanguage(Locale.CHINA)
+                        tts?.setSpeechRate(1.0f)
+                        tts?.setPitch(1.0f)
+                        ttsReady = true
+                        Log.d(TAG, "TTS ready. setLanguage result: ${'$'}langRes")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "TTS post-init config failed", e)
+                        ttsReady = true
+                    }
+                } else {
+                    Log.w(TAG, "TTS init failed: ${'$'}status")
+                    ttsReady = false
+                    if (usePreferred) {
+                        // 回退到系统默认引擎再试一次
+                        handler.postDelayed({ initTts(preferEngine = false) }, 400)
+                    } else if (ttsInitAttempts < 3) {
+                        // 再尝试几次初始化
+                        handler.postDelayed({ initTts(preferEngine = false) }, 600)
+                    } else {
+                        Toast.makeText(this, "TTS初始化失败，请检查是否安装语音引擎", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            tts = if (usePreferred) {
+                TextToSpeech(applicationContext, listener, preferredTtsEngine)
+            } else {
+                TextToSpeech(applicationContext, listener)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "initTts exception", e)
+            ttsReady = false
+            if (ttsInitAttempts < 3) {
+                handler.postDelayed({ initTts(preferEngine = false) }, 800)
+            } else {
+                Toast.makeText(this, "无法初始化TTS，请安装或启用系统TTS", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun isPackageInstalled(pkg: String): Boolean {
+        return try {
+            packageManager.getPackageInfo(pkg, 0)
+            true
+        } catch (_: Exception) {
+            false
         }
     }
 } 

@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GameTrans"
+rootProject.name = "GameTransAI"
 include(":app")
  
