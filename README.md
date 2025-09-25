@@ -40,6 +40,18 @@ This is an Android overlay app powered by Google Gemini for multimodal translati
 
 ---
 
+## 主要使用场景 / Primary Use Cases
+
+- **屏幕翻译 / Screen Translation**
+  - 看新闻、玩游戏等场景时，对屏幕上的外语文本进行一键截图识别与翻译，结果通过悬浮窗即时展示。
+  - 支持选择区域翻译，避开无关元素，提升准确度与观感。
+
+- **基于屏幕内容的自定义提示词 / Custom Prompts from Screen Content**
+  - 将当前屏幕截图与自定义中文/英文提示词一并发送至 Gemini，生成面向任务的输出（如要点摘要、专有名词解释、学习/攻略指引等）。
+  - 可在设置中切换内置模板或输入自定义提示词；针对手机界面/游戏画面优化，输出以中文为先、简明清晰。
+
+---
+
 ## 快速开始 / Quick Start
 1.  在 Android Studio 中打开项目 (需要 Android 7.0+)。
 2.  在 `local.properties` 文件中配置你的 API 密钥: `GEMINI_API_KEY=your_key`。
@@ -148,4 +160,4 @@ val result = geminiApiManager.translateImage(bitmap, promptOverride = prompt)
   <img src="docs/donate/wechat.png" alt="微信打赏" width="45%" />
 </p>
 
-> 将两张图片保存到仓库路径：`docs/donate/alipay.png` 与 `docs/donate/wechat.png`，README 将自动显示。
+
