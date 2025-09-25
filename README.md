@@ -44,7 +44,6 @@ This is an Android overlay app powered by Google Gemini for multimodal translati
 
 - **屏幕翻译 / Screen Translation**
   - 看新闻、玩游戏等场景时，对屏幕上的外语文本进行一键截图识别与翻译，结果通过悬浮窗即时展示。
-  - 支持选择区域翻译，避开无关元素，提升准确度与观感。
 
 - **基于屏幕内容的自定义提示词 / Custom Prompts from Screen Content**
   - 将当前屏幕截图与自定义中文/英文提示词一并发送至 Gemini，生成面向任务的输出（如要点摘要、专有名词解释、学习/攻略指引等）。
@@ -149,6 +148,22 @@ val result = geminiApiManager.translateImage(bitmap, promptOverride = prompt)
 -   **Low Intrusion**: Retains `PromptMode` and `buildTranslationPrompt()` for backward compatibility.
 -   **Extensible**: Adding new scenarios only requires extending the `AiTask` enum and its corresponding `build...Prompt()` function.
 -   **Localized**: All templates are designed to output in Chinese for the best user experience.
+
+---
+
+## 后期开发内容 / Roadmap
+
+- **区域翻译 / Region-based Translation**
+  - 在屏幕上框选一个或多个区域，进行更精确的 OCR 与翻译；支持缩放与质量优化，以适配游戏与长文档场景。
+
+- **语音对话 / Voice Conversation (STT)**
+  - 语音输入唤起对话窗口，实时语音识别（Speech-to-Text），并与模型进行多轮对话；适配免手动输入的使用场景。
+
+- **TTS 朗读 / Text-to-Speech**
+  - 对翻译结果、要点摘要等进行多语种 TTS 播报；提供语速、音色、音量等参数调节，便于边看边听。
+
+- **Android 自动化研究 / Android Automation R&D**
+  - 基于无障碍与自动化测试框架（如 UiAutomator/Espresso）探索自动点击、自动填表与流程驱动；结合 AI 指令生成操作脚本以提升可用性。
 
 ---
 
