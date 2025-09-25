@@ -57,4 +57,9 @@
     <string name="language_chinese">中文</string>
     <string name="language_english">English</string>
     <string name="language_changed">Language changed</string>
+    
+    <!-- AI provider switch -->
+    <string name="ai_provider">AI Model</string>
+    <string name="provider_gemini">Gemini</string>
+    <string name="provider_qwen">Qwen3-Omni</string>
 </resources>

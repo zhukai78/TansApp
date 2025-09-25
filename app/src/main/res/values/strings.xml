@@ -57,4 +57,9 @@
     <string name="language_chinese">中文</string>
     <string name="language_english">English</string>
     <string name="language_changed">语言已更改</string>
+
+    <!-- 模型提供商切换 -->
+    <string name="ai_provider">AI 模型</string>
+    <string name="provider_gemini">Gemini</string>
+    <string name="provider_qwen">Qwen3-Omni</string>
 </resources>

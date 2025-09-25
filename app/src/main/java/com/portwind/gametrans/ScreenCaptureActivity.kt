@@ -21,6 +21,8 @@ class ScreenCaptureActivity : ComponentActivity() {
     }
 
     private lateinit var geminiApiManager: GeminiApiManager
+    private lateinit var qwenApiManager: QwenApiManager
+    private lateinit var settingsManager: SettingsManager
     private var wakeLock: PowerManager.WakeLock? = null
 
     private val screenCaptureLauncher = registerForActivityResult(
@@ -57,7 +59,9 @@ class ScreenCaptureActivity : ComponentActivity() {
         setupForXiaomiDevice()
         
         try {
+            settingsManager = SettingsManager(this)
             geminiApiManager = GeminiApiManager(this)
+            qwenApiManager = QwenApiManager(this)
             Log.d(TAG, "GeminiApiManager initialized")
 
             // 检查是否已有权限，如果有就直接截图，否则请求权限
@@ -168,14 +172,10 @@ class ScreenCaptureActivity : ComponentActivity() {
      */
     private suspend fun translateScreenshot(bitmap: android.graphics.Bitmap) {
         try {
-            Log.d(TAG, "开始调用Gemini API翻译截图...")
+            Log.d(TAG, "开始调用翻译API处理截图...")
             
             // 检查API是否可用
-            if (!geminiApiManager.isApiAvailable()) {
-                Log.w(TAG, "Gemini API密钥未配置，跳过翻译")
-                Toast.makeText(this, "请先配置Gemini API密钥", Toast.LENGTH_SHORT).show()
-                return
-            }
+            val provider = settingsManager.getModelProvider()
             
             // 读取来自服务的临时提示词（如果有）
             val promptOverride = intent.getStringExtra("PROMPT_OVERRIDE")
@@ -184,11 +184,25 @@ class ScreenCaptureActivity : ComponentActivity() {
             }
 
             // 调用Gemini API进行翻译（支持临时提示词覆盖）
-            val result = geminiApiManager.translateImage(bitmap, promptOverride)
+            val result = when (provider) {
+                ModelProvider.GEMINI -> {
+                    if (!geminiApiManager.isApiAvailable()) {
+                        Toast.makeText(this, "请先配置Gemini API密钥", Toast.LENGTH_SHORT).show()
+                        null
+                    } else geminiApiManager.translateImage(bitmap, promptOverride)
+                }
+                ModelProvider.QWEN -> {
+                    val hasKey = BuildConfig.QWEN_API_KEY.isNotBlank()
+                    if (!hasKey) {
+                        Toast.makeText(this, "请先配置Qwen API密钥", Toast.LENGTH_SHORT).show()
+                        null
+                    } else qwenApiManager.translateImage(bitmap, promptOverride)
+                }
+            }
             
             if (result != null) {
                 // 任务3要求：在日志中打印翻译结果
-                Log.d(TAG, "=== Gemini翻译结果 ===")
+                Log.d(TAG, "=== 翻译结果（${provider.name}） ===")
                 Log.d(TAG, "格式化结果: ${result.translatedText}")
                 Log.d(TAG, "=== 翻译结果结束 ===")
                 

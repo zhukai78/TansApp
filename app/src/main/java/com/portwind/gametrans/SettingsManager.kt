@@ -14,7 +14,8 @@ data class AppSettings(
     val maxImageSize: Int = 1024,  // 优化性能：降低默认图像尺寸以加快API调用速度
     val compressionQuality: Int = 85,  // 平衡质量与性能的压缩质量设置
     val customPrompt: String = "",  // 新增：自定义提示词
-    val language: AppLanguage = AppLanguage.CHINESE  // 新增：语言设置
+    val language: AppLanguage = AppLanguage.CHINESE,  // 新增：语言设置
+    val modelProvider: ModelProvider = ModelProvider.GEMINI  // 新增：模型提供商
 )
 
 /**
@@ -23,6 +24,12 @@ data class AppSettings(
 enum class AppLanguage(val code: String, val displayName: String) {
     CHINESE("zh", "中文"),
     ENGLISH("en", "English")
+}
+
+/** 模型提供商 */
+enum class ModelProvider(val displayName: String) {
+    GEMINI("Gemini"),
+    QWEN("Qwen3-Omni")
 }
 
 /**
@@ -74,6 +81,7 @@ class SettingsManager(private val context: Context) {
         private const val KEY_COMPRESSION_QUALITY = "compression_quality"
         private const val KEY_CUSTOM_PROMPT = "custom_prompt"  // 新增
         private const val KEY_LANGUAGE = "language"  // 新增：语言设置
+        private const val KEY_MODEL_PROVIDER = "model_provider"  // 新增：模型提供商
         
         // 默认值 - 平衡性能与质量的优化设置
         private const val DEFAULT_MAX_IMAGE_SIZE = 1024  // 优化为1024px以加快API处理速度
@@ -98,6 +106,11 @@ class SettingsManager(private val context: Context) {
 """.trimIndent()
     }
     
+    /** 设置模型提供商 */
+    fun setModelProvider(provider: ModelProvider) {
+        sharedPrefs.edit().putString(KEY_MODEL_PROVIDER, provider.name).apply()
+    }
+
     private val sharedPrefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     
     /**
@@ -109,7 +122,8 @@ class SettingsManager(private val context: Context) {
             maxImageSize = getMaxImageSize(),
             compressionQuality = getCompressionQuality(),
             customPrompt = getCustomPrompt(),  // 新增
-            language = getLanguage()  // 新增：语言设置
+            language = getLanguage(),  // 新增：语言设置
+            modelProvider = getModelProvider()  // 新增：模型提供商
         )
     }
     
@@ -123,6 +137,7 @@ class SettingsManager(private val context: Context) {
             putInt(KEY_COMPRESSION_QUALITY, settings.compressionQuality)
             putString(KEY_CUSTOM_PROMPT, settings.customPrompt)  // 新增
             putString(KEY_LANGUAGE, settings.language.name)  // 新增：语言设置
+            putString(KEY_MODEL_PROVIDER, settings.modelProvider.name)  // 新增：模型提供商
             apply()
         }
         Log.d(TAG, "设置已保存: $settings")
@@ -214,6 +229,16 @@ class SettingsManager(private val context: Context) {
             PromptMode.OPTIMIZED -> buildOptimizedPrompt()
             PromptMode.DETAILED -> buildDetailedPrompt()
             PromptMode.CUSTOM -> getCustomPrompt()  // 新增：使用自定义提示词
+        }
+    }
+
+    /** 获取模型提供商 */
+    fun getModelProvider(): ModelProvider {
+        val name = sharedPrefs.getString(KEY_MODEL_PROVIDER, ModelProvider.GEMINI.name)
+        return try {
+            ModelProvider.valueOf(name ?: ModelProvider.GEMINI.name)
+        } catch (_: Exception) {
+            ModelProvider.GEMINI
         }
     }
 

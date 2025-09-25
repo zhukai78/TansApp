@@ -67,6 +67,49 @@ fun SettingsScreen(
             SettingsSection(
                 title = stringResource(R.string.translation_settings)
             ) {
+                // 模型提供商切换
+                Text(
+                    text = stringResource(R.string.ai_provider),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = currentSettings.modelProvider == ModelProvider.GEMINI,
+                        onClick = {
+                            currentSettings = currentSettings.copy(modelProvider = ModelProvider.GEMINI)
+                            settingsManager.saveSettings(currentSettings)
+                            onShowMessage("Gemini")
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.provider_gemini))
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = currentSettings.modelProvider == ModelProvider.QWEN,
+                        onClick = {
+                            currentSettings = currentSettings.copy(modelProvider = ModelProvider.QWEN)
+                            settingsManager.saveSettings(currentSettings)
+                            onShowMessage("Qwen3-Omni")
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.provider_qwen))
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // 提示词模式选择
                 PromptModeSelector(
                     selectedMode = currentSettings.promptMode,

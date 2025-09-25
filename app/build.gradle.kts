@@ -32,6 +32,9 @@ android {
         
         // 将API密钥添加到BuildConfig
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
+        // Qwen API Key（从 local.properties 读取 QWEN_API_KEY，若无则空串）
+        val qwenApiKey: String = localProperties.getProperty("QWEN_API_KEY") ?: ""
+        buildConfigField("String", "QWEN_API_KEY", "\"$qwenApiKey\"")
     }
 
     buildTypes {
@@ -70,6 +73,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.generativeai)
+    implementation(libs.okhttp)
     implementation(libs.androidx.lifecycle.runtime.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
