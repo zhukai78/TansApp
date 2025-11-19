@@ -6,11 +6,16 @@ import android.graphics.Matrix
 import android.util.Log
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
+import com.google.ai.client.generativeai.type.ServerException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
 
 /**
  * 翻译结果数据类
@@ -39,13 +44,24 @@ class GeminiApiManager(private val context: Context) {
     companion object {
         private const val TAG = "GeminiApiManager"
         private const val MODEL_NAME = "gemini-2.5-flash"  // 修正模型名称
-        // TODO: 将API密钥配置到local.properties中
+        
+        // 速率限制配置
+        private const val MIN_REQUEST_INTERVAL_MS = 1000L  // 最小请求间隔 1 秒
+        private const val MAX_RETRY_ATTEMPTS = 3  // 最大重试次数
+        private const val INITIAL_BACKOFF_MS = 2000L  // 初始退避时间 2 秒
+        private const val MAX_BACKOFF_MS = 32000L  // 最大退避时间 32 秒
     }
     
     private val settingsManager = SettingsManager(context)
     
     // 防止重复请求的原子锁
     private val isTranslating = AtomicBoolean(false)
+    
+    // 记录上次请求时间，用于速率限制
+    private val lastRequestTime = AtomicLong(0L)
+    
+    // 存储最后的错误消息
+    @Volatile private var lastErrorMessage: String? = null
     
     private val generativeModel: GenerativeModel by lazy {
         GenerativeModel(
@@ -55,12 +71,45 @@ class GeminiApiManager(private val context: Context) {
     }
 
     /**
-     * 文本多轮对话（简化实现）：
+     * 获取最后的错误消息
+     */
+    fun getLastErrorMessage(): String? = lastErrorMessage
+    
+    /**
+     * 速率限制控制：确保请求间隔不小于最小间隔
+     */
+    private suspend fun enforceRateLimit() {
+        val currentTime = System.currentTimeMillis()
+        val lastTime = lastRequestTime.get()
+        val timeSinceLastRequest = currentTime - lastTime
+        
+        if (timeSinceLastRequest < MIN_REQUEST_INTERVAL_MS) {
+            val waitTime = MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest
+            Log.d(TAG, "速率限制：等待 ${waitTime}ms 后再发送请求")
+            delay(waitTime)
+        }
+        
+        lastRequestTime.set(System.currentTimeMillis())
+    }
+    
+    /**
+     * 计算指数退避时间
+     */
+    private fun calculateBackoffTime(attempt: Int): Long {
+        val backoff = (INITIAL_BACKOFF_MS * 2.0.pow(attempt.toDouble())).toLong()
+        return min(backoff, MAX_BACKOFF_MS)
+    }
+    
+    /**
+     * 文本多轮对话（简化实现，带速率限制和重试）：
      * 将历史与当前问题拼接为一个上下文提示，获取助手回复。
      */
     suspend fun sendChatMessage(history: List<ChatMessage>, userMessage: String): String? = withContext(Dispatchers.IO) {
         try {
-            if (getApiKey().isBlank()) return@withContext null
+            if (getApiKey().isBlank()) {
+                lastErrorMessage = "API密钥未配置"
+                return@withContext null
+            }
 
             val sb = StringBuilder()
             if (history.isNotEmpty()) {
@@ -74,12 +123,70 @@ class GeminiApiManager(private val context: Context) {
             sb.append("用户: ").appendLine(userMessage.trim()).append("助手: ")
 
             val input = content { text(sb.toString()) }
-            val response = generativeModel.generateContent(input)
-            val text = response.text?.trim()
-            if (text.isNullOrBlank()) null else text
+            
+            // 带重试机制的 API 调用
+            for (attempt in 0 until MAX_RETRY_ATTEMPTS) {
+                try {
+                    // 速率限制控制
+                    enforceRateLimit()
+                    
+                    Log.d(TAG, "发送聊天消息（尝试 ${attempt + 1}/$MAX_RETRY_ATTEMPTS）...")
+                    val response = generativeModel.generateContent(input)
+                    val text = response.text?.trim()
+                    
+                    if (text.isNullOrBlank()) {
+                        lastErrorMessage = "API返回空结果"
+                        return@withContext null
+                    }
+                    
+                    lastErrorMessage = null
+                    return@withContext text
+                    
+                } catch (e: ServerException) {
+                    val errorMsg = e.message ?: ""
+                    
+                    // 检查是否为 429 错误（配额超限）
+                    if (errorMsg.contains("429") || errorMsg.contains("RESOURCE_EXHAUSTED")) {
+                        val backoffTime = calculateBackoffTime(attempt)
+                        Log.w(TAG, "聊天API配额超限 (429)，尝试 ${attempt + 1}/$MAX_RETRY_ATTEMPTS")
+                        
+                        if (attempt < MAX_RETRY_ATTEMPTS - 1) {
+                            Log.i(TAG, "等待 ${backoffTime}ms 后重试...")
+                            delay(backoffTime)
+                            continue
+                        } else {
+                            Log.e(TAG, "聊天API配额超限，已达最大重试次数")
+                            lastErrorMessage = "API配额已用完，请稍后再试"
+                            return@withContext null
+                        }
+                    } else {
+                        Log.e(TAG, "服务器错误 (尝试 ${attempt + 1})", e)
+                        if (attempt < MAX_RETRY_ATTEMPTS - 1) {
+                            delay(calculateBackoffTime(attempt))
+                            continue
+                        } else {
+                            lastErrorMessage = "服务器错误: ${e.message}"
+                            return@withContext null
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "sendChatMessage失败 (尝试 ${attempt + 1})", e)
+                    if (attempt < MAX_RETRY_ATTEMPTS - 1) {
+                        delay(calculateBackoffTime(attempt))
+                        continue
+                    } else {
+                        lastErrorMessage = "聊天失败: ${e.message}"
+                        return@withContext null
+                    }
+                }
+            }
+            
+            lastErrorMessage = "聊天失败，已达最大重试次数"
+            return@withContext null
         } catch (e: Exception) {
-            Log.w(TAG, "sendChatMessage failed", e)
-            null
+            Log.e(TAG, "sendChatMessage意外错误", e)
+            lastErrorMessage = "发送消息失败: ${e.message}"
+            return@withContext null
         }
     }
     
@@ -137,7 +244,7 @@ class GeminiApiManager(private val context: Context) {
     }
     
     /**
-     * 使用Gemini进行图像翻译
+     * 使用Gemini进行图像翻译（带重试和速率限制）
      * @param bitmap 要翻译的屏幕截图
      * @return 翻译结果，包含原文和译文
      */
@@ -145,6 +252,7 @@ class GeminiApiManager(private val context: Context) {
         // 防止重复请求 - 如果正在翻译中，直接返回
         if (!isTranslating.compareAndSet(false, true)) {
             Log.w(TAG, "翻译请求已在进行中，跳过重复请求")
+            lastErrorMessage = "翻译请求已在进行中，请稍候"
             return@withContext null
         }
         
@@ -172,52 +280,129 @@ class GeminiApiManager(private val context: Context) {
                 image(optimizedBitmap)
                 text(prompt)
             }
-            Log.d(TAG, "API请求内容构建完成，开始发送请求...")
+            Log.d(TAG, "API请求内容构建完成")
             
-            // 调用Gemini API
-            val response = generativeModel.generateContent(inputContent)
-            Log.d(TAG, "API响应接收完成，开始解析...")
-            
-            val result = response.text
-            
-            if (result.isNullOrBlank()) {
-                Log.w(TAG, "API返回空结果")
-                return@withContext null
+            // 带重试机制的 API 调用
+            var lastException: Exception? = null
+            for (attempt in 0 until MAX_RETRY_ATTEMPTS) {
+                try {
+                    // 速率限制控制
+                    enforceRateLimit()
+                    
+                    Log.d(TAG, "发送API请求（尝试 ${attempt + 1}/$MAX_RETRY_ATTEMPTS）...")
+                    val response = generativeModel.generateContent(inputContent)
+                    Log.d(TAG, "API响应接收完成")
+                    
+                    val result = response.text
+                    
+                    if (result.isNullOrBlank()) {
+                        Log.w(TAG, "API返回空结果")
+                        lastErrorMessage = "API返回空结果"
+                        return@withContext null
+                    }
+                    
+                    Log.d(TAG, "API响应获取成功")
+                    Log.d(TAG, "响应长度: ${result.length} 字符")
+                    
+                    // 分析响应内容
+                    val lineCount = result.lines().size
+                    val wordCount = result.split("\\s+".toRegex()).size
+                    Log.d(TAG, "响应统计: $lineCount 行, $wordCount 词")
+                    
+                    if (result.contains("...") || result.contains("省略") || result.contains("truncated")) {
+                        Log.w(TAG, "检测到可能的不完整响应标志")
+                    }
+                    
+                    // 解析结果，提取原文和译文
+                    val translationResult = parseTranslationResult(result)
+                    Log.d(TAG, "翻译结果解析完成")
+                    lastErrorMessage = null
+                    return@withContext translationResult
+                    
+                } catch (e: ServerException) {
+                    lastException = e
+                    val errorMsg = e.message ?: ""
+                    
+                    // 检查是否为 429 错误（配额超限）
+                    if (errorMsg.contains("429") || errorMsg.contains("RESOURCE_EXHAUSTED")) {
+                        val backoffTime = calculateBackoffTime(attempt)
+                        Log.w(TAG, "API配额超限 (429)，尝试 ${attempt + 1}/$MAX_RETRY_ATTEMPTS")
+                        
+                        if (attempt < MAX_RETRY_ATTEMPTS - 1) {
+                            Log.i(TAG, "等待 ${backoffTime}ms 后重试...")
+                            lastErrorMessage = "API配额超限，正在重试...（${attempt + 1}/$MAX_RETRY_ATTEMPTS）"
+                            delay(backoffTime)
+                            continue
+                        } else {
+                            Log.e(TAG, "API配额超限，已达最大重试次数")
+                            lastErrorMessage = "API配额已用完，请稍后再试或检查您的配额设置\n\n" +
+                                "解决方案：\n" +
+                                "1. 等待一段时间后重试（建议等待1分钟以上）\n" +
+                                "2. 检查您的 Gemini API 配额：https://ai.dev/usage?tab=rate-limit\n" +
+                                "3. 如果是免费版，请考虑升级到付费版本"
+                            return@withContext null
+                        }
+                    } else {
+                        // 其他服务器错误
+                        Log.e(TAG, "服务器错误 (尝试 ${attempt + 1})", e)
+                        if (attempt < MAX_RETRY_ATTEMPTS - 1) {
+                            val backoffTime = calculateBackoffTime(attempt)
+                            Log.i(TAG, "等待 ${backoffTime}ms 后重试...")
+                            lastErrorMessage = "服务器错误，正在重试...（${attempt + 1}/$MAX_RETRY_ATTEMPTS）"
+                            delay(backoffTime)
+                            continue
+                        }
+                    }
+                } catch (e: java.net.SocketTimeoutException) {
+                    lastException = e
+                    Log.e(TAG, "API调用超时 (尝试 ${attempt + 1})", e)
+                    if (attempt < MAX_RETRY_ATTEMPTS - 1) {
+                        Log.i(TAG, "等待后重试...")
+                        lastErrorMessage = "网络超时，正在重试...（${attempt + 1}/$MAX_RETRY_ATTEMPTS）"
+                        delay(calculateBackoffTime(attempt))
+                        continue
+                    } else {
+                        lastErrorMessage = "网络超时，请检查网络连接"
+                    }
+                } catch (e: java.net.UnknownHostException) {
+                    Log.e(TAG, "网络连接失败，请检查网络状态", e)
+                    lastErrorMessage = "网络连接失败，请检查网络连接"
+                    return@withContext null
+                } catch (e: java.io.IOException) {
+                    lastException = e
+                    Log.e(TAG, "网络IO异常 (尝试 ${attempt + 1})", e)
+                    if (attempt < MAX_RETRY_ATTEMPTS - 1) {
+                        Log.i(TAG, "等待后重试...")
+                        lastErrorMessage = "网络IO异常，正在重试...（${attempt + 1}/$MAX_RETRY_ATTEMPTS）"
+                        delay(calculateBackoffTime(attempt))
+                        continue
+                    } else {
+                        lastErrorMessage = "网络IO异常: ${e.message}"
+                    }
+                } catch (e: Exception) {
+                    lastException = e
+                    Log.e(TAG, "API调用失败 (尝试 ${attempt + 1})", e)
+                    Log.e(TAG, "错误类型: ${e.javaClass.simpleName}")
+                    Log.e(TAG, "错误消息: ${e.message}")
+                    
+                    if (attempt < MAX_RETRY_ATTEMPTS - 1) {
+                        Log.i(TAG, "等待后重试...")
+                        lastErrorMessage = "API调用失败，正在重试...（${attempt + 1}/$MAX_RETRY_ATTEMPTS）"
+                        delay(calculateBackoffTime(attempt))
+                        continue
+                    } else {
+                        lastErrorMessage = "API调用失败: ${e.message}"
+                    }
+                }
             }
             
-            Log.d(TAG, "API响应获取成功")
-            Log.d(TAG, "响应长度: ${result.length} 字符")
-            // Log.d(TAG, "原始响应: $result") // 注释掉，避免重复
-            
-            // 分析响应内容，检查是否可能不完整
-            val lineCount = result.lines().size
-            val wordCount = result.split("\\s+".toRegex()).size
-            Log.d(TAG, "响应统计: $lineCount 行, $wordCount 词")
-            
-            if (result.contains("...") || result.contains("省略") || result.contains("truncated")) {
-                Log.w(TAG, "检测到可能的不完整响应标志")
+            // 所有重试都失败
+            Log.e(TAG, "API调用失败，已达最大重试次数")
+            if (lastException != null) {
+                lastException.printStackTrace()
             }
+            return@withContext null
             
-            // 解析结果，提取原文和译文
-            val translationResult = parseTranslationResult(result)
-            Log.d(TAG, "翻译结果解析完成")
-            return@withContext translationResult
-            
-        } catch (e: java.net.SocketTimeoutException) {
-            Log.e(TAG, "Gemini API调用超时", e)
-            return@withContext null
-        } catch (e: java.net.UnknownHostException) {
-            Log.e(TAG, "网络连接失败，请检查网络状态", e)
-            return@withContext null
-        } catch (e: java.io.IOException) {
-            Log.e(TAG, "网络IO异常", e)
-            return@withContext null
-        } catch (e: Exception) {
-            Log.e(TAG, "Gemini API调用失败", e)
-            Log.e(TAG, "错误类型: ${e.javaClass.simpleName}")
-            Log.e(TAG, "错误消息: ${e.message}")
-            e.printStackTrace()
-            return@withContext null
         } finally {
             // 清理优化后的bitmap（如果和原bitmap不同）
             if (optimizedBitmap != null && optimizedBitmap != bitmap) {

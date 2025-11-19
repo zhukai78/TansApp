@@ -35,8 +35,7 @@ import android.view.View
 import android.os.Handler
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
-import android.speech.tts.TextToSpeech
-import java.util.Locale
+import android.media.MediaPlayer
 
 class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStoreOwner {
     private lateinit var windowManager: WindowManager
@@ -58,10 +57,8 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
     private lateinit var chatWindowManager: ChatWindowManager
     private lateinit var promptWindowManager: PromptWindowManager
     private val handler = Handler()
-    private var tts: TextToSpeech? = null
-    private var ttsReady: Boolean = false
-    private var ttsInitAttempts: Int = 0
-    private val preferredTtsEngine = "com.google.android.tts"
+    private var mediaPlayer: MediaPlayer? = null
+    private lateinit var ttsApiManager: TtsApiManager
     
     private val restoreReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -143,8 +140,8 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
                 handlePromptChanged(prompt)
             }
         )
-        // 初始化TTS
-        initTts(preferEngine = true)
+        // 初始化自定义 TTS API 管理器
+        ttsApiManager = TtsApiManager(this)
         
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification("服务运行中"))
@@ -227,14 +224,13 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
         // 不要在服务销毁时释放单例的ScreenCaptureManager
         // screenCaptureManager.release() 
         translationPanelManager.release()
-        // 关闭TTS
+        // 释放音频播放器
         try {
-            tts?.stop()
-            tts?.shutdown()
-            ttsReady = false
-            ttsInitAttempts = 0
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+            mediaPlayer = null
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to shutdown TTS", e)
+            Log.w(TAG, "Failed to release MediaPlayer", e)
         }
         
         // 注销广播接收器
@@ -684,99 +680,59 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
         }
     }
 
-    // 使用系统TTS朗读原文
+    // 使用云端TTS合成并播放原文
     private fun speakOriginal(text: String) {
         try {
-            val engine = tts ?: run {
-                Toast.makeText(this, "TTS未可用，正在初始化…", Toast.LENGTH_SHORT).show()
-                initTts(preferEngine = true)
-                return
-            }
-            if (!ttsReady) {
-                Toast.makeText(this, "TTS未就绪，正在重试…", Toast.LENGTH_SHORT).show()
-                initTts(preferEngine = false)
-                return
-            }
-            engine.stop()
-            // 简单语言识别：日文假名则设置日语，否则使用系统默认
+            // 语言简判：含日文假名时切换日语音色，否则中文音色
             val containsKana = text.any { ch ->
                 (ch in '\u3040'..'\u309F') || (ch in '\u30A0'..'\u30FF')
             }
-            val preferred = if (containsKana) Locale.JAPAN else Locale.CHINA
-            val res = try { engine.setLanguage(preferred) } catch (e: Exception) { Log.w(TAG, "setLanguage failed", e); TextToSpeech.LANG_AVAILABLE }
-            if (res == TextToSpeech.LANG_MISSING_DATA || res == TextToSpeech.LANG_NOT_SUPPORTED) {
-                try { engine.setLanguage(Locale.US) } catch (_: Exception) {}
+            val voice = if (containsKana) "ja-JP-NanamiNeural" else "zh-CN-XiaoxiaoNeural"
+
+            lifecycleScope.launch {
+                try {
+                    Toast.makeText(this@FloatingWindowService, "正在生成语音…", Toast.LENGTH_SHORT).show()
+                    val outFile = ttsApiManager.synthesizeToFile(
+                        text = text,
+                        config = TtsApiManager.TtsConfig(
+                            voice = voice,
+                            speed = 1.0,
+                            pitch = "0",
+                            style = "general"
+                        )
+                    )
+                    if (outFile == null) {
+                        Toast.makeText(this@FloatingWindowService, "语音生成失败", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+
+                    try {
+                        mediaPlayer?.let { existing ->
+                            try { existing.stop(); existing.release() } catch (_: Exception) {}
+                        }
+                        mediaPlayer = MediaPlayer().apply {
+                            setOnPreparedListener { start() }
+                            setOnCompletionListener { mp ->
+                                try { mp.release() } catch (_: Exception) {}
+                                mediaPlayer = null
+                                try { outFile.delete() } catch (_: Exception) {}
+                            }
+                            setDataSource(outFile.absolutePath)
+                            prepareAsync()
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "MediaPlayer play failed", e)
+                        Toast.makeText(this@FloatingWindowService, "音频播放失败", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "speakOriginal synthesize failed", e)
+                    Toast.makeText(this@FloatingWindowService, "语音生成异常", Toast.LENGTH_SHORT).show()
+                }
             }
-            engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "orig_${'$'}{System.currentTimeMillis()}")
         } catch (e: Exception) {
             Log.w(TAG, "speakOriginal failed", e)
         }
     }
 
-    // =================== TTS 辅助逻辑 ===================
-    private fun initTts(preferEngine: Boolean) {
-        try {
-            // 避免重复创建
-            tts?.let { existing ->
-                try { existing.stop(); existing.shutdown() } catch (_: Exception) {}
-            }
-            tts = null
-            ttsReady = false
-
-            val usePreferred = preferEngine && isPackageInstalled(preferredTtsEngine)
-            ttsInitAttempts += 1
-            Log.d(TAG, "Initializing TTS (attempt ${'$'}ttsInitAttempts), prefer=${'$'}usePreferred")
-
-            val listener = TextToSpeech.OnInitListener { status ->
-                Log.d(TAG, "TTS init status: ${'$'}status")
-                if (status == TextToSpeech.SUCCESS) {
-                    try {
-                        val langRes = tts?.setLanguage(Locale.CHINA)
-                        tts?.setSpeechRate(1.0f)
-                        tts?.setPitch(1.0f)
-                        ttsReady = true
-                        Log.d(TAG, "TTS ready. setLanguage result: ${'$'}langRes")
-                    } catch (e: Exception) {
-                        Log.w(TAG, "TTS post-init config failed", e)
-                        ttsReady = true
-                    }
-                } else {
-                    Log.w(TAG, "TTS init failed: ${'$'}status")
-                    ttsReady = false
-                    if (usePreferred) {
-                        // 回退到系统默认引擎再试一次
-                        handler.postDelayed({ initTts(preferEngine = false) }, 400)
-                    } else if (ttsInitAttempts < 3) {
-                        // 再尝试几次初始化
-                        handler.postDelayed({ initTts(preferEngine = false) }, 600)
-                    } else {
-                        Toast.makeText(this, "TTS初始化失败，请检查是否安装语音引擎", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-
-            tts = if (usePreferred) {
-                TextToSpeech(applicationContext, listener, preferredTtsEngine)
-            } else {
-                TextToSpeech(applicationContext, listener)
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "initTts exception", e)
-            ttsReady = false
-            if (ttsInitAttempts < 3) {
-                handler.postDelayed({ initTts(preferEngine = false) }, 800)
-            } else {
-                Toast.makeText(this, "无法初始化TTS，请安装或启用系统TTS", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun isPackageInstalled(pkg: String): Boolean {
-        return try {
-            packageManager.getPackageInfo(pkg, 0)
-            true
-        } catch (_: Exception) {
-            false
-        }
-    }
+    // 旧系统TTS逻辑已移除
 } 

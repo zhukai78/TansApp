@@ -213,7 +213,9 @@ class ScreenCaptureActivity : ComponentActivity() {
                 Toast.makeText(this, "翻译完成，查看结果面板", Toast.LENGTH_SHORT).show()
             } else {
                 Log.e(TAG, "翻译失败：API返回空结果")
-                Toast.makeText(this, "翻译失败，请重试", Toast.LENGTH_SHORT).show()
+                val err = if (provider == ModelProvider.QWEN) qwenApiManager.getLastErrorMessage() else null
+                val msg = if (!err.isNullOrBlank()) "翻译失败：$err" else "翻译失败，请重试"
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
             }
             
         } catch (e: Exception) {
