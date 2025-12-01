@@ -52,7 +52,7 @@ enum class AiTask(val displayName: String, val description: String) {
     TRANSLATE_DETAILED("精准翻译", "更全面的识别与翻译，准确度优先"),
 
     // 新增：通用AI场景
-    SUMMARIZE_SCREEN("屏幕摘要", "对当前截图内容做中文要点总结"),
+    SUMMARIZE_SCREEN("屏幕摘要", "生成屏幕内容的中文摘要"),
     REPHRASE_TO_CN("中文润色重写", "将图片中的中文文本润色、优化表达"),
     TLDR_KEYPOINTS("TL;DR 要点", "输出三到五条极简要点"),
 
@@ -62,7 +62,19 @@ enum class AiTask(val displayName: String, val description: String) {
     IDENTIFY_PLANT_ANIMAL("动植物识别", "识别图片中的动植物"),
     IDENTIFY_DISH_AND_RECIPE("菜肴识别与菜谱", "识别菜肴并生成参考菜谱"),
     INGREDIENTS_ANALYSIS("配料表分析", "简短说明配料表并提示潜在有害物质"),
-    CALORIE_ANALYSIS("卡路里分析", "从图片/包装信息估算能量与营养构成")
+    CALORIE_ANALYSIS("卡路里分析", "从图片/包装信息估算能量与营养构成"),
+
+    // 新增：创意与趣味
+    REVERSE_PROMPT("提示词反推", "分析画面生成AI绘画提示词"),
+    MEME_EXPLAINER("梗图详解", "解释表情包笑点与来源"),
+
+    // 新增：知识与学习
+    SOLVE_MATH("数学求解", "识别题目并给出解题步骤"),
+    EXPLAIN_CODE("代码解释", "识别代码片段并解释其功能"),
+
+    // 新增：生活助手
+    GAME_HINT("游戏攻略", "分析游戏画面给出建议"),
+    TRAVEL_GUIDE("旅游导游", "识别地标介绍景点信息")
 }
 
 /**
@@ -252,7 +264,7 @@ class SettingsManager(private val context: Context) {
             AiTask.TRANSLATE_OPTIMIZED -> buildOptimizedPrompt()
             AiTask.TRANSLATE_DETAILED -> buildDetailedPrompt()
 
-            // 通用AI任务
+            // 新增：通用AI任务
             AiTask.SUMMARIZE_SCREEN -> buildSummarizeScreenPrompt()
             AiTask.REPHRASE_TO_CN -> buildRephraseToCnPrompt()
             AiTask.TLDR_KEYPOINTS -> buildTldrPrompt()
@@ -264,6 +276,18 @@ class SettingsManager(private val context: Context) {
             AiTask.IDENTIFY_DISH_AND_RECIPE -> buildIdentifyDishAndRecipePrompt()
             AiTask.INGREDIENTS_ANALYSIS -> buildIngredientsAnalysisPrompt()
             AiTask.CALORIE_ANALYSIS -> buildCalorieAnalysisPrompt()
+
+            // 新增：创意与趣味
+            AiTask.REVERSE_PROMPT -> buildReversePrompt()
+            AiTask.MEME_EXPLAINER -> buildMemeExplainerPrompt()
+
+            // 新增：知识与学习
+            AiTask.SOLVE_MATH -> buildSolveMathPrompt()
+            AiTask.EXPLAIN_CODE -> buildExplainCodePrompt()
+
+            // 新增：生活助手
+            AiTask.GAME_HINT -> buildGameHintPrompt()
+            AiTask.TRAVEL_GUIDE -> buildTravelGuidePrompt()
         }
     }
     
@@ -462,6 +486,89 @@ class SettingsManager(private val context: Context) {
             - 简述主要能量来源（碳水/脂肪/蛋白质）占比或倾向性（如可识别）
             - 若糖分/饱和脂肪/反式脂肪/钠偏高，请用简短语句标注健康提示（如“控制摄入”）
             - 不确定时请标注“约/可能”，输出控制在2-4行
+        """.trimIndent()
+    }
+
+    // ============================
+    // 创意与趣味任务模板
+    // ============================
+
+    /** 提示词反推：生成AI绘画Prompt */
+    private fun buildReversePrompt(): String {
+        return """
+            请仔细分析这张图片，反推出可以生成类似图像的AI绘画提示词（Prompt）：
+            1.  **画面描述**：详细描述主体、背景、构图、光影、色彩。
+            2.  **艺术风格**：分析画风（如赛博朋克、水彩、油画、写实摄影、二次元等）。
+            3.  **关键词提取**：提取关键Tag（如 masterpiece, best quality, 4k, [主体], [动作], [环境]）。
+            4.  **Stable Diffusion格式**：组合成一段标准的英文Prompt。
+            5.  **Midjourney格式**：组合成一段适用于Midjourney的Prompt（带参数建议）。
+        """.trimIndent()
+    }
+
+    /** 梗图详解：解释表情包 */
+    private fun buildMemeExplainerPrompt(): String {
+        return """
+            请解释这张表情包/梗图（Meme）：
+            1.  **图面内容**：图片里发生了什么？有什么文字？
+            2.  **梗的来源**：这个梗出自哪里？（如果知道的话）
+            3.  **笑点解析**：为什么这张图好笑？它在表达什么情绪或讽刺什么现象？
+            4.  **适用场景**：通常在什么情况下使用这张图？
+        """.trimIndent()
+    }
+
+    // ============================
+    // 知识与学习任务模板
+    // ============================
+
+    /** 数学求解 */
+    private fun buildSolveMathPrompt(): String {
+        return """
+            请识别并解答图片中的数学题：
+            1.  **题目识别**：将题目文字/公式转换为清晰的文本格式（LaTeX）。
+            2.  **解题思路**：简要说明解题的关键步骤和逻辑。
+            3.  **详细步骤**：一步步计算或推导。
+            4.  **最终答案**：给出明确的最终结果。
+            请确保数学符号准确，逻辑严密。
+        """.trimIndent()
+    }
+
+    /** 代码解释 */
+    private fun buildExplainCodePrompt(): String {
+        return """
+            请识别图片中的代码片段并进行解释：
+            1.  **语言识别**：这是什么编程语言？
+            2.  **功能概括**：这段代码主要在做什么？
+            3.  **逐行/逐块解析**：解释关键代码行的作用。
+            4.  **潜在问题**：如果有明显的Bug或优化空间，请指出。
+            请用通俗易懂的语言解释。
+        """.trimIndent()
+    }
+
+    // ============================
+    // 生活助手任务模板
+    // ============================
+
+
+
+    /** 旅游导游 */
+    private fun buildTravelGuidePrompt(): String {
+        return """
+            请作为导游，识别图片中的景点或地标：
+            1.  **名称识别**：这是哪里？（具体景点名称、城市、国家）。
+            2.  **历史文化**：简要介绍其历史背景或文化意义。
+            3.  **游玩亮点**：有哪些值得关注的细节或必做的事？
+            4.  **实用贴士**：最佳游玩时间、注意事项等（如适用）。
+        """.trimIndent()
+    }
+
+    /** 游戏攻略 */
+    private fun buildGameHintPrompt(): String {
+        return """
+            请作为资深游戏玩家，分析这张游戏截图并给出攻略建议：
+            1.  **当前状态**：识别游戏类型、当前场景或关卡状态。
+            2.  **关键信息**：注意血量、资源、任务目标、敌人弱点等。
+            3.  **行动建议**：下一步应该做什么？有没有隐藏要素或技巧？
+            4.  **解谜提示**：如果涉及解谜，给出提示而非直接答案（除非很明显）。
         """.trimIndent()
     }
 } 

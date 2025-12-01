@@ -18,7 +18,7 @@ class BakingViewModel : ViewModel() {
         _uiState.asStateFlow()
 
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-2.5-flash",  // 修正模型名称
+        modelName = "gemini-3-pro-preview",  // 修正模型名称
         apiKey = BuildConfig.GEMINI_API_KEY
     )
 

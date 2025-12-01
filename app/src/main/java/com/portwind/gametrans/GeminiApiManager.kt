@@ -43,7 +43,7 @@ class GeminiApiManager(private val context: Context) {
     
     companion object {
         private const val TAG = "GeminiApiManager"
-        private const val MODEL_NAME = "gemini-2.5-flash"  // 修正模型名称
+        private const val MODEL_NAME = "gemini-3-pro-preview"  // 修正模型名称
         
         // 速率限制配置
         private const val MIN_REQUEST_INTERVAL_MS = 1000L  // 最小请求间隔 1 秒
