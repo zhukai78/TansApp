@@ -58,6 +58,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.portwind.gametrans.ui.theme.GameTransTheme
+import com.portwind.gametrans.ui.components.AnimeCard
+import com.portwind.gametrans.ui.components.AnimeButton
+import com.portwind.gametrans.ui.theme.AnimeTextPrimary
+import com.portwind.gametrans.ui.theme.AnimeTextSecondary
 
 
 @Composable
@@ -94,20 +98,12 @@ fun TranslationResultPanel(
                     }
                 }
         ) {
-            Card(
+            AnimeCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = (configuration.screenHeightDp * 0.9f).dp)
-                    .border(
-                        1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        RoundedCornerShape(0.dp)
-                    ),
-                shape = RoundedCornerShape(0.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.80f),
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    .heightIn(max = (configuration.screenHeightDp * 0.9f).dp),
+                elevation = 8.dp,
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f) // Higher opacity for readability
             ) {
                 Column(
                     modifier = Modifier
@@ -157,7 +153,7 @@ fun TranslationResultPanel(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 20.sp
                                 ),
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = AnimeTextPrimary
                             )
                         }
                         
@@ -252,7 +248,7 @@ fun TranslationResultPanel(
                                                     fontWeight = FontWeight.Medium,
                                                     letterSpacing = 0.3.sp
                                                 ),
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                                color = AnimeTextSecondary,
                                                 modifier = Modifier.weight(1f)
                                             )
                                             
@@ -285,7 +281,7 @@ fun TranslationResultPanel(
                                                 fontWeight = FontWeight.SemiBold,
                                                 letterSpacing = 0.2.sp
                                             ),
-                                            color = MaterialTheme.colorScheme.onSurface,
+                                            color = AnimeTextPrimary,
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                         

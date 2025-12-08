@@ -49,6 +49,16 @@ import androidx.compose.ui.unit.dp
 import com.portwind.gametrans.ui.theme.GameTransTheme
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import com.portwind.gametrans.ui.components.SnowfallEffect
+import com.portwind.gametrans.ui.components.AnimeCard
+import com.portwind.gametrans.ui.components.AnimeButton
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 
 class MainActivity : ComponentActivity() {
     
@@ -159,141 +169,147 @@ fun MainScreen(
     hasOverlayPermission: Boolean = false,
     currentLanguage: AppLanguage = AppLanguage.CHINESE
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // 标题栏和按钮
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Background Image
+        Image(
+            painter = painterResource(id = R.drawable.bg_winter_anime),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // Snowfall Effect
+        SnowfallEffect()
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = "GameTrans",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.primary
-            )
-            
-            Row {
-                // 语言切换按钮
-                LanguageSelector(
-                    currentLanguage = currentLanguage,
-                    onLanguageChanged = onLanguageChanged
+            // 标题栏和按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "GameTrans",
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.3f),
+                            offset = Offset(2f, 2f),
+                            blurRadius = 4f
+                        )
+                    ),
+                    color = MaterialTheme.colorScheme.primary
                 )
                 
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // 设置按钮
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = stringResource(R.string.settings),
-                        tint = MaterialTheme.colorScheme.primary
+                Row {
+                    // 语言切换按钮
+                    LanguageSelector(
+                        currentLanguage = currentLanguage,
+                        onLanguageChanged = onLanguageChanged
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    // 设置按钮
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.settings),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = stringResource(R.string.app_subtitle),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // 功能介绍卡片
+            AnimeCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.main_features_title),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Text(
+                        text = stringResource(R.string.main_features_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.4
                     )
                 }
             }
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = stringResource(R.string.app_subtitle),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // 功能介绍卡片
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.main_features_title),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // 权限状态提示
+            if (!hasOverlayPermission) {
+                AnimeCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
+                ) {
+                    Text(
+                        text = stringResource(R.string.permission_warning),
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        textAlign = TextAlign.Center
+                    )
+                }
                 
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Text(
-                    text = stringResource(R.string.main_features_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.4
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // 权限状态提示
-        if (!hasOverlayPermission) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Text(
-                    text = stringResource(R.string.permission_warning),
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    textAlign = TextAlign.Center
-                )
+                Spacer(modifier = Modifier.height(16.dp))
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-        
-        // 操作按钮
-        Button(
-            onClick = onStartFloatingWindow,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
+            // 操作按钮
+            AnimeButton(
+                onClick = onStartFloatingWindow,
                 text = stringResource(R.string.start_translation_service),
-                style = MaterialTheme.typography.labelLarge
+                modifier = Modifier.fillMaxWidth()
             )
-        }
-            
-        Spacer(modifier = Modifier.height(12.dp))
-            
-        OutlinedButton(
-            onClick = onStopFloatingWindow,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
+                
+            Spacer(modifier = Modifier.height(12.dp))
+                
+            AnimeButton(
+                onClick = onStopFloatingWindow,
                 text = stringResource(R.string.stop_floating_window),
-                style = MaterialTheme.typography.labelLarge
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Text(
+                text = stringResource(R.string.task_status),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center
             )
         }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Text(
-            text = stringResource(R.string.task_status),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
-        )
     }
 }
 

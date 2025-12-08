@@ -60,6 +60,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.portwind.gametrans.ui.theme.GameTransTheme
+import com.portwind.gametrans.ui.components.AnimeCard
+import com.portwind.gametrans.ui.theme.AnimeTextPrimary
+import com.portwind.gametrans.ui.theme.AnimePrimary
+import com.portwind.gametrans.ui.theme.AnimeSecondary
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -86,21 +90,12 @@ fun FloatingWindowCompose(
                     onDrag(dragAmount)
                 }
             }
-    ) {
-        Card(
-            modifier = Modifier
-                .shadow(8.dp, RoundedCornerShape(16.dp))
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                    RoundedCornerShape(16.dp)
-                ),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
+            AnimeCard(
+                modifier = Modifier.shadow(8.dp, RoundedCornerShape(24.dp)),
+                elevation = 6.dp,
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+            ) {
             Column(
                 modifier = Modifier.padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -277,47 +272,48 @@ fun CollapsedFloatingWindow(
                 }
             }
     ) {
-        Card(
-            onClick = onExpand,
+        // Anime-style pill shape
+        Box(
             modifier = Modifier
-                .width(36.dp)
-                .height(42.dp)
+                .width(48.dp)
+                .height(56.dp)
                 .shadow(
-                    10.dp, 
+                    8.dp, 
                     RoundedCornerShape(
-                        topStart = 24.dp,
+                        topStart = 28.dp,
                         topEnd = 0.dp,
-                        bottomStart = 24.dp, 
+                        bottomStart = 28.dp, 
                         bottomEnd = 0.dp
                     )
-                ),
-            shape = RoundedCornerShape(
-                topStart = 12.dp,
-                topEnd = 0.dp,
-                bottomStart = 12.dp, 
-                bottomEnd = 0.dp
-            ),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            Box(
-                modifier = Modifier.padding(4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
-                        contentDescription = "展开",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
+                )
+                .background(
+                    color = AnimePrimary.copy(alpha = 0.9f),
+                    shape = RoundedCornerShape(
+                        topStart = 28.dp,
+                        topEnd = 0.dp,
+                        bottomStart = 28.dp, 
+                        bottomEnd = 0.dp
                     )
-                }
-            }
+                )
+                .border(
+                    1.dp,
+                    Color.White.copy(alpha = 0.5f),
+                    RoundedCornerShape(
+                        topStart = 28.dp,
+                        topEnd = 0.dp,
+                        bottomStart = 28.dp, 
+                        bottomEnd = 0.dp
+                    )
+                )
+                .clickable(onClick = onExpand),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowRight,
+                contentDescription = "展开",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
