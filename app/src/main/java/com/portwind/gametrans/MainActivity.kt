@@ -184,7 +184,7 @@ fun MainScreen(
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
-            alpha = 0.85f  // 稍微降低不透明度，让背景更柔和
+            alpha = 0.6f  // Very subtle background to allow text contrast
         )
 
         // Snowfall Effect
@@ -208,12 +208,12 @@ fun MainScreen(
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.Bold,
                         shadow = Shadow(
-                            color = Color.Black.copy(alpha = 0.3f),
+                            color = Color.Black.copy(alpha = 0.5f), // Stronger shadow for white text
                             offset = Offset(2f, 2f),
                             blurRadius = 4f
                         )
                     ),
-                    color = MaterialTheme.colorScheme.primary
+                    color = Color.White // Bright text
                 )
                 
                 Row {
@@ -230,7 +230,7 @@ fun MainScreen(
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = stringResource(R.string.settings),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = Color.White // Bright icon
                         )
                     }
                 }
@@ -241,7 +241,7 @@ fun MainScreen(
             Text(
                 text = stringResource(R.string.app_subtitle),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                color = Color.White.copy(alpha = 0.9f), // Bright subtitle
                 textAlign = TextAlign.Center
             )
             
@@ -259,7 +259,7 @@ fun MainScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface // Keep dark text inside card
                     )
                     
                     Spacer(modifier = Modifier.height(12.dp))
@@ -267,7 +267,7 @@ fun MainScreen(
                     Text(
                         text = stringResource(R.string.main_features_description),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f), // Keep dark text inside card
                         lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.4
                     )
                 }
@@ -315,7 +315,7 @@ fun MainScreen(
             Text(
                 text = stringResource(R.string.task_status),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                color = Color.White,
                 textAlign = TextAlign.Center
             )
         }
@@ -333,7 +333,7 @@ fun LanguageSelector(
         Icon(
             imageVector = Icons.Filled.Language,
             contentDescription = stringResource(R.string.language_settings),
-            tint = MaterialTheme.colorScheme.primary
+            tint = Color.White
         )
     }
     

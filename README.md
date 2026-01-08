@@ -53,14 +53,28 @@ This is an Android overlay app powered by Google Gemini for multimodal translati
 
 ## 快速开始 / Quick Start
 1.  在 Android Studio 中打开项目 (需要 Android 7.0+)。
-2.  在 `local.properties` 文件中配置你的 API 密钥: `GEMINI_API_KEY=your_key`。
+2.  **⚠️ 重要：** 在项目根目录创建 `secrets.properties` 文件，配置你的 API 密钥:
+
+    > **📝 secrets.properties**
+    > ```properties
+    > GEMINI_API_KEY=your_gemini_api_key
+    > ```
+    > 💡 获取密钥: [Google AI Studio](https://aistudio.google.com/apikey)
+
 3.  同步、构建并在设备上运行。
 4.  授予悬浮窗和屏幕捕获权限。
 5.  点击悬浮窗按钮进行截图和处理；可在设置中切换不同的AI任务。
 6.  使用对话窗口提问；历史记录会自动保存，长按消息可复制。
 
 1.  Open the project in Android Studio (requires Android 7.0+).
-2.  Configure your API key in the `local.properties` file: `GEMINI_API_KEY=your_key`.
+2.  **⚠️ Important:** Create a `secrets.properties` file in the project root and configure your API key:
+
+    > **📝 secrets.properties**
+    > ```properties
+    > GEMINI_API_KEY=your_gemini_api_key
+    > ```
+    > 💡 Get your key: [Google AI Studio](https://aistudio.google.com/apikey)
+
 3.  Sync, build, and run on a device.
 4.  Grant the overlay and screen capture permissions.
 5.  Tap the floating button to capture and process the screen; you can switch AI tasks in the Settings.
@@ -70,28 +84,23 @@ This is an Android overlay app powered by Google Gemini for multimodal translati
 
 ## 开发日志摘要 / Development Log Summary
 
-### Task 1: 悬浮窗 / Floating Window
--   **✅ 状态: 完成** / **Status: Complete**
+### 悬浮窗 / Floating Window
 -   **特性**: 权限处理 (`SYSTEM_ALERT_WINDOW`, `FOREGROUND_SERVICE`), 用于生命周期管理的前台服务 (`FloatingWindowService`), 以及使用 Jetpack Compose 构建的可拖动 UI。
 -   **Features**: Permission handling, a foreground service (`FloatingWindowService`) for lifecycle management, and a draggable UI built with Jetpack Compose.
 
-### Task 2: 屏幕截图 / Screen Capture
--   **✅ 状态: 完成** / **Status: Complete**
+### 屏幕截图 / Screen Capture
 -   **特性**: 增强的权限管理 (`FOREGROUND_SERVICE_MEDIA_PROJECTION`), 使用 MediaProjection API 的 `ScreenCaptureManager`, 并与悬浮窗集成以触发截图。
 -   **Features**: Enhanced permission management, a `ScreenCaptureManager` using the MediaProjection API, and integration with the floating window to trigger captures.
 
-### Task 3: Gemini API 集成 / Gemini API Integration
--   **✅ 状态: 完成** / **Status: Complete**
--   **特性**: 用于处理图像翻译的 `GeminiApiManager`, 通过 `local.properties` 和 `BuildConfig` 进行的安全API密钥管理, 以及截图后触发的完整翻译流程。
--   **Features**: A `GeminiApiManager` for image translation, secure API key management via `local.properties` and `BuildConfig`, and a complete translation pipeline triggered after a screenshot.
+### Gemini API 集成 / Gemini API Integration
+-   **特性**: 用于处理图像翻译的 `GeminiApiManager`, 通过 `secrets.properties` 和 `BuildConfig` 进行的安全API密钥管理, 以及截图后触发的完整翻译流程。
+-   **Features**: A `GeminiApiManager` for image translation, secure API key management via `secrets.properties` and `BuildConfig`, and a complete translation pipeline triggered after a screenshot.
 
-### Tasks 4 & 5: 结果面板UI / Result Panel UI
--   **✅ 状态: 完成** / **Status: Complete**
+### 结果面板UI / Result Panel UI
 -   **特性**: 采用 Material Design 3 风格的 `TranslationResultPanel` 组件，支持动画和长文本滚动。`TranslationPanelManager` 处理其生命周期和拖动手势。
 -   **Features**: A `TranslationResultPanel` component with Material Design 3 styling, animations, and scrolling for long text. A `TranslationPanelManager` handles its lifecycle and drag gestures.
 
-### Task 6: 设置界面 / Settings Screen
--   **✅ 状态: 完成** / **Status: Complete**
+### 设置界面 / Settings Screen
 -   **特性**: 用于配置提示词模式 (优化、详细、自定义) 和图像参数 (最大尺寸、压缩质量) 的设置UI。`SettingsManager` 使用 `SharedPreferences` 持久化这些选项。
 -   **Features**: A settings UI to configure prompt modes (Optimized, Detailed, Custom) and image parameters (max size, compression quality). A `SettingsManager` persists these choices using `SharedPreferences`.
 

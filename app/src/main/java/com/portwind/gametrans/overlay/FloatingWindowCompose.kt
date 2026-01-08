@@ -4,47 +4,21 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,25 +26,16 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.portwind.gametrans.ui.theme.GameTransTheme
-import com.portwind.gametrans.ui.components.AnimeCard
-import com.portwind.gametrans.ui.theme.AnimeTextPrimary
-import com.portwind.gametrans.ui.theme.AnimePrimary
-import com.portwind.gametrans.ui.theme.AnimeSecondary
 import com.portwind.gametrans.settings.AiTask
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateListOf
-import kotlinx.coroutines.launch
-import androidx.compose.ui.graphics.Brush
+import com.portwind.gametrans.ui.theme.GameTransTheme
+import com.portwind.gametrans.ui.theme.AnimePrimary
+import com.portwind.gametrans.ui.theme.TextPrimary
 
 @Composable
 fun FloatingWindowCompose(
@@ -91,175 +56,268 @@ fun FloatingWindowCompose(
                     onDrag(dragAmount)
                 }
             }
+    ) {
+        // Main Card - Japanese Minimalist Style (Paper-like)
+        Card(
+            modifier = Modifier.shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(16.dp),
+                spotColor = Color.Black.copy(alpha = 0.1f)
+            ),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.background // PaperWhite
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp) // Flat, using shadow modifier instead
         ) {
-            AnimeCard(
-                modifier = Modifier.shadow(8.dp, RoundedCornerShape(24.dp)),
-                elevation = 6.dp,
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-            ) {
             Column(
-                modifier = Modifier.padding(12.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .width(IntrinsicSize.Min),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 标题栏
+                // Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // 左上角：切换下拉
-                        var expanded by remember { mutableStateOf(false) }
-                        Box {
-                            IconButton(
-                                onClick = { expanded = true },
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                        RoundedCornerShape(6.dp)
-                                    )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "切换任务",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                AiTask.values().forEach { task ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Column {
-                                                Text(
-                                                    text = task.displayName,
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = task.description,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                                )
-                                            }
-                                        },
-                                        onClick = {
-                                            expanded = false
-                                            onPromptTaskSelected(task)
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                    // Task Selector (Minimalist)
+                    TaskSelector(onPromptTaskSelected)
 
-                        Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                        Text(
-                            text = "GameTrans",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    
+                    // Window Controls
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        // 折叠按钮
-                        ModernIconButton(
+                        MinimalIconButton(
                             onClick = onCollapse,
                             icon = Icons.Default.KeyboardArrowRight,
-                            contentDescription = "折叠",
-                            backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            iconColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                            contentDescription = "Collapse"
                         )
-                        
-                        // 关闭按钮
-                        ModernIconButton(
+                        MinimalIconButton(
                             onClick = onClose,
                             icon = Icons.Default.Close,
-                            contentDescription = "关闭",
-                            backgroundColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-                            iconColor = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                            contentDescription = "Close",
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                         )
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(6.dp))
 
-                // 临时提示词：使用WindowManager管理的对话框
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // 聊天对话框状态
+                // Chat Dialog Trigger Logic
                 var showChatDialog by remember { mutableStateOf(false) }
-
-                // This is now just a trigger, the dialog itself is a separate window
                 if (showChatDialog) {
-                    onAskClicked() // Call the service to show the window
-                    showChatDialog = false // Reset the trigger
+                    onAskClicked()
+                    showChatDialog = false
                 }
 
-                // 主要操作按钮 - 横向排列
+                // Main Actions Row
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Ask 按钮
-                    ModernCircleTextButton(
+                    // Ask AI
+                    MinimalCircleButton(
                         onClick = { showChatDialog = true },
                         enabled = !isTranslating,
-                        text = "💬",
-                        size = 32.dp,
-                        backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                        textColor = MaterialTheme.colorScheme.primary,
-                        contentDescription = "AI问答"
+                        text = "?",
+                        contentDescription = "Ask AI"
                     )
 
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width(24.dp))
 
-                    // 翻译按钮
-                    FloatingTranslateButton(
+                    // Translate Button (Centerpiece)
+                    ZenTranslateButton(
                         onClick = onTranslateClick,
-                        isTranslating = isTranslating,
-                        buttonText = "译",
-                        modifier = Modifier.size(48.dp) // 稍稍增大主按钮
+                        isTranslating = isTranslating
                     )
 
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width(24.dp))
 
-                    // 临时提示词按钮
-                    ModernCircleTextButton(
+                    // Edit Prompt
+                    MinimalCircleButton(
                         onClick = onPromptDialogClicked,
                         enabled = !isTranslating,
-                        text = "✏️",
-                        size = 32.dp,
-                        backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                        textColor = MaterialTheme.colorScheme.primary,
-                        contentDescription = "编辑提示词"
+                        icon = Icons.Outlined.Edit,
+                        contentDescription = "Edit Prompt"
                     )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Status Text
                 Text(
-                    text = if (isTranslating) translationProgress else "全屏翻译",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isTranslating) 
-                        MaterialTheme.colorScheme.primary 
-                    else 
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    text = if (isTranslating) translationProgress else "GameTrans",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        letterSpacing = 1.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = if (isTranslating)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
-
-                // 对话框现在由专门的WindowManager处理
             }
         }
     }
 }
 
-// 新增：折叠状态的小长条组件
+@Composable
+fun TaskSelector(onPromptTaskSelected: (AiTask) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    Box {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { expanded = true }
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Task", 
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Select Task",
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+        }
+        
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+        ) {
+            AiTask.values().forEach { task ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = task.displayName,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onPromptTaskSelected(task)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ZenTranslateButton(
+    onClick: () -> Unit,
+    isTranslating: Boolean
+) {
+    val scale by animateFloatAsState(
+        targetValue = if (isTranslating) 0.9f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f),
+        label = "scale"
+    )
+
+    val containerColor by animateColorAsState(
+        targetValue = if (isTranslating) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) 
+                      else MaterialTheme.colorScheme.primary,
+        label = "color"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(56.dp)
+            .scale(scale)
+            .shadow(
+                elevation = 8.dp,
+                shape = CircleShape,
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+            )
+            .background(containerColor, CircleShape)
+            .clickable(enabled = !isTranslating, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isTranslating) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = Color.White,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Outlined.Translate,
+                contentDescription = "Translate",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun MinimalIconButton(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    contentDescription: String,
+    tint: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(32.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+@Composable
+fun MinimalCircleButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    text: String? = null,
+    icon: ImageVector? = null,
+    contentDescription: String
+) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .border(
+                1.dp, 
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), 
+                CircleShape
+            )
+            .clip(CircleShape)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        if (text != null) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Light),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+        } else if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+        }
+    }
+}
+
+// Collapsed State View
 @Composable
 fun CollapsedFloatingWindow(
     onExpand: () -> Unit = {},
@@ -273,329 +331,25 @@ fun CollapsedFloatingWindow(
                 }
             }
     ) {
-        // Anime-style pill shape
         Box(
             modifier = Modifier
-                .width(48.dp)
-                .height(56.dp)
-                .shadow(
-                    8.dp, 
-                    RoundedCornerShape(
-                        topStart = 28.dp,
-                        topEnd = 0.dp,
-                        bottomStart = 28.dp, 
-                        bottomEnd = 0.dp
-                    )
-                )
+                .width(42.dp)
+                .height(48.dp)
+                .shadow(4.dp, RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp))
                 .background(
-                    color = AnimePrimary.copy(alpha = 0.9f),
-                    shape = RoundedCornerShape(
-                        topStart = 28.dp,
-                        topEnd = 0.dp,
-                        bottomStart = 28.dp, 
-                        bottomEnd = 0.dp
-                    )
-                )
-                .border(
-                    1.dp,
-                    Color.White.copy(alpha = 0.5f),
-                    RoundedCornerShape(
-                        topStart = 28.dp,
-                        topEnd = 0.dp,
-                        bottomStart = 28.dp, 
-                        bottomEnd = 0.dp
-                    )
+                    MaterialTheme.colorScheme.primary,
+                    RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp)
                 )
                 .clickable(onClick = onExpand),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.KeyboardArrowRight,
-                contentDescription = "展开",
+                contentDescription = "Expand",
                 tint = Color.White,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
-    }
-}
-@Composable
-fun FloatingTranslateButton(
-    onClick: () -> Unit = {},
-    modifier: Modifier = Modifier,
-    isTranslating: Boolean = false,
-    buttonText: String = "译"
-) {
-    // 动画值
-    val buttonScale by animateFloatAsState(
-        targetValue = if (isTranslating) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = 0.7f,
-            stiffness = 300f
-        ),
-        label = "buttonScale"
-    )
-
-    val buttonColor by animateColorAsState(
-        targetValue = if (isTranslating)
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-        else
-            MaterialTheme.colorScheme.primary,
-        animationSpec = tween(durationMillis = 200),
-        label = "buttonColor"
-    )
-    
-    val shadowElevation by animateFloatAsState(
-        targetValue = if (isTranslating) 3f else 10f,
-        animationSpec = tween(durationMillis = 200),
-        label = "shadowElevation"
-    )
-
-    IconButton(
-        onClick = onClick,
-        enabled = !isTranslating,
-        modifier = modifier
-            .size(40.dp)
-            .scale(buttonScale)
-            .shadow(
-                elevation = shadowElevation.dp,
-                shape = CircleShape,
-                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-            )
-            .background(
-                color = buttonColor,
-                shape = CircleShape
-            )
-            .border(
-                width = if (isTranslating) 0.dp else 1.dp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                shape = CircleShape
-            )
-    ) {
-        if (isTranslating) {
-            // 使用脉冲动画效果
-            val alpha by animateFloatAsState(
-                targetValue = 0.6f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 800, easing = LinearEasing),
-                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-                ),
-                label = "pulse"
-            )
-            
-            Text(
-                text = "🌐",
-                fontSize = 18.sp,
-                color = Color.White.copy(alpha = alpha)
-            )
-        } else {
-            Text(
-                text = "🌐",
-                fontSize = 18.sp,
-                color = Color.White
-            )
-        }
-    }
-}
-
-// 现代化图标按钮组件
-@Composable
-fun ModernIconButton(
-    onClick: () -> Unit,
-    icon: ImageVector,
-    contentDescription: String,
-    backgroundColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-    iconColor: Color = MaterialTheme.colorScheme.primary,
-    modifier: Modifier = Modifier
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    
-    // 动画效果
-    val scale by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = spring(dampingRatio = 0.6f),
-        label = "buttonScale"
-    )
-    
-    val animatedBackgroundColor by animateColorAsState(
-        targetValue = backgroundColor,
-        animationSpec = tween(durationMillis = 200),
-        label = "backgroundColor"
-    )
-
-    Box(
-        modifier = modifier
-            .size(28.dp)
-            .scale(scale)
-            .shadow(
-                elevation = 4.dp,
-                shape = RoundedCornerShape(8.dp),
-                ambientColor = iconColor.copy(alpha = 0.2f),
-                spotColor = iconColor.copy(alpha = 0.3f)
-            )
-            .background(
-                color = animatedBackgroundColor,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .border(
-                width = 0.5.dp,
-                color = iconColor.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(8.dp)
-            )
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = iconColor,
-            modifier = Modifier.size(16.dp)
-        )
-    }
-}
-
-// 现代化圆形按钮组件
-@Composable
-fun ModernCircleButton(
-    onClick: () -> Unit,
-    icon: ImageVector,
-    contentDescription: String,
-    size: androidx.compose.ui.unit.Dp = 32.dp,
-    backgroundColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-    iconColor: Color = MaterialTheme.colorScheme.primary,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    
-    // 动画效果
-    val scale by animateFloatAsState(
-        targetValue = if (enabled) 1f else 0.9f,
-        animationSpec = spring(dampingRatio = 0.6f),
-        label = "buttonScale"
-    )
-    
-    val animatedBackgroundColor by animateColorAsState(
-        targetValue = if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.5f),
-        animationSpec = tween(durationMillis = 200),
-        label = "backgroundColor"
-    )
-    
-    val animatedIconColor by animateColorAsState(
-        targetValue = if (enabled) iconColor else iconColor.copy(alpha = 0.5f),
-        animationSpec = tween(durationMillis = 200),
-        label = "iconColor"
-    )
-
-    Box(
-        modifier = modifier
-            .size(size)
-            .scale(scale)
-            .shadow(
-                elevation = if (enabled) 4.dp else 2.dp,
-                shape = CircleShape,
-                ambientColor = iconColor.copy(alpha = 0.2f),
-                spotColor = iconColor.copy(alpha = 0.3f)
-            )
-            .background(
-                color = animatedBackgroundColor,
-                shape = CircleShape
-            )
-            .border(
-                width = 0.5.dp,
-                color = animatedIconColor.copy(alpha = 0.3f),
-                shape = CircleShape
-            )
-            .clip(CircleShape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                enabled = enabled,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = animatedIconColor,
-            modifier = Modifier.size((size.value * 0.5f).dp)
-        )
-    }
-}
-
-// 现代化圆形文本按钮组件
-@Composable
-fun ModernCircleTextButton(
-    onClick: () -> Unit,
-    text: String,
-    contentDescription: String,
-    size: androidx.compose.ui.unit.Dp = 32.dp,
-    backgroundColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-    textColor: Color = MaterialTheme.colorScheme.primary,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    
-    // 动画效果
-    val scale by animateFloatAsState(
-        targetValue = if (enabled) 1f else 0.9f,
-        animationSpec = spring(dampingRatio = 0.6f),
-        label = "buttonScale"
-    )
-    
-    val animatedBackgroundColor by animateColorAsState(
-        targetValue = if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.5f),
-        animationSpec = tween(durationMillis = 200),
-        label = "backgroundColor"
-    )
-    
-    val animatedTextColor by animateColorAsState(
-        targetValue = if (enabled) textColor else textColor.copy(alpha = 0.5f),
-        animationSpec = tween(durationMillis = 200),
-        label = "textColor"
-    )
-
-    Box(
-        modifier = modifier
-            .size(size)
-            .scale(scale)
-            .shadow(
-                elevation = if (enabled) 4.dp else 2.dp,
-                shape = CircleShape,
-                ambientColor = textColor.copy(alpha = 0.2f),
-                spotColor = textColor.copy(alpha = 0.3f)
-            )
-            .background(
-                color = animatedBackgroundColor,
-                shape = CircleShape
-            )
-            .border(
-                width = 0.5.dp,
-                color = animatedTextColor.copy(alpha = 0.3f),
-                shape = CircleShape
-            )
-            .clip(CircleShape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                enabled = enabled,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            color = animatedTextColor,
-            fontSize = (size.value * 0.4f).sp,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-        )
     }
 }
 
@@ -604,62 +358,5 @@ fun ModernCircleTextButton(
 fun FloatingWindowComposePreview() {
     GameTransTheme {
         FloatingWindowCompose()
-    }
-}
-
-@Preview
-@Composable
-fun CollapsedFloatingWindowPreview() {
-    GameTransTheme {
-        CollapsedFloatingWindow()
-    }
-}
-
-@Preview
-@Composable
-fun FloatingTranslateButtonPreview() {
-    GameTransTheme {
-        FloatingTranslateButton()
-    }
-}
-
-@Preview
-@Composable
-fun ModernButtonsPreview() {
-    GameTransTheme {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ModernIconButton(
-                    onClick = {},
-                    icon = Icons.Default.KeyboardArrowRight,
-                    contentDescription = "折叠",
-                    backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    iconColor = MaterialTheme.colorScheme.primary
-                )
-                ModernIconButton(
-                    onClick = {},
-                    icon = Icons.Default.Close,
-                    contentDescription = "关闭",
-                    backgroundColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-                    iconColor = MaterialTheme.colorScheme.error
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ModernCircleTextButton(
-                    onClick = {},
-                    text = "💬",
-                    contentDescription = "AI问答",
-                    backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    textColor = MaterialTheme.colorScheme.primary
-                )
-                ModernCircleTextButton(
-                    onClick = {},
-                    text = "✏️",
-                    contentDescription = "编辑提示词",
-                    backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    textColor = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
     }
 } 

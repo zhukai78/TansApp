@@ -1,73 +1,48 @@
 package com.portwind.gametrans.overlay
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.portwind.gametrans.settings.AiTask
 import com.portwind.gametrans.ui.theme.GameTransTheme
-import com.portwind.gametrans.ui.components.AnimeCard
-import com.portwind.gametrans.ui.components.AnimeButton
-import com.portwind.gametrans.ui.theme.AnimeTextPrimary
-import com.portwind.gametrans.ui.theme.AnimeTextSecondary
-
+import com.portwind.gametrans.ui.theme.TextPrimary
+import com.portwind.gametrans.ui.theme.TextSecondary
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -89,253 +64,206 @@ fun TranslationResultPanel(
         visible = showPanel && !translationResult.isNullOrBlank(),
         enter = slideInVertically(
             animationSpec = tween(400, easing = androidx.compose.animation.core.EaseOutCubic)
-        ) { it / 2 } + fadeIn(animationSpec = tween(400)),
+        ) { it / 4 } + fadeIn(animationSpec = tween(400)),
         exit = slideOutVertically(
             animationSpec = tween(300, easing = androidx.compose.animation.core.EaseInCubic)
-        ) { it / 2 } + fadeOut(animationSpec = tween(300))
+        ) { it / 4 } + fadeOut(animationSpec = tween(300))
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = (configuration.screenHeightDp * 1.0f).dp)
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f))
+                .heightIn(max = (configuration.screenHeightDp * 0.9f).dp)
                 .pointerInput(Unit) {
                     detectDragGestures { _, dragAmount ->
                         onDrag(dragAmount)
                     }
                 }
         ) {
-            AnimeCard(
+            // Main Panel Card
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = (configuration.screenHeightDp * 0.9f).dp),
-                elevation = 8.dp,
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f) // Higher opacity for readability
+                    .padding(16.dp)
+                    .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.05f)),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.background // Paper white
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
-                    modifier = Modifier
-                        .padding(20.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.Start
+                    modifier = Modifier.padding(20.dp)
                 ) {
-                    // 标题栏
+                    // Header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // 翻译图标 - 使用渐变背景的翻译符号
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                    )
-                                    .border(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                                        RoundedCornerShape(12.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "译",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 18.sp
-                                    )
-                                )
-                            }
-                            
+                                    .size(4.dp, 24.dp)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
-                            
                             Text(
-                                text = "AI结果",
-                                style = MaterialTheme.typography.headlineSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp
+                                text = "Translation",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.5.sp
                                 ),
-                                color = AnimeTextPrimary
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        
-                        Row {
-                            // 复制按钮
-                            IconButton(
+
+                        // Actions
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            MinimalIconButton(
                                 onClick = {
                                     translationResult?.let { result ->
                                         clipboardManager.setText(AnnotatedString(result))
+                                        Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
                                     }
                                 },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Text(
-                                    text = "复制",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontSize = 10.sp
-                                )
-                            }
-                            
-                            // 关闭按钮
-                            IconButton(
+                                icon = Icons.Default.ContentCopy,
+                                contentDescription = "Copy"
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            MinimalIconButton(
                                 onClick = {
                                     showPanel = false
                                     onClose()
                                 },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "关闭",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                )
-                            }
+                                icon = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                            )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // 分割线
+
+                    Divider(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                        thickness = 1.dp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Content Area
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(1.dp)
-                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // 翻译内容 - 新格式：原文和译文段落对应显示
-                    translationResult?.let { result ->
-                        Box(
+                            .heightIn(max = (configuration.screenHeightDp * 0.6f).dp)
+                    ) {
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = (configuration.screenHeightDp * 0.65f).dp)
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .border(
-                                    1.dp,
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .padding(18.dp)
+                                .verticalScroll(scrollState)
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .verticalScroll(scrollState)
-                            ) {
-                                // 解析并显示格式化的翻译结果
-                                val paragraphs = result.split("\n\n").filter { it.trim().isNotEmpty() }
+                            val paragraphs = resultTextToParagraphs(translationResult)
+
+                            paragraphs.forEachIndexed { index, paragraph ->
+                                val isOriginal = index % 2 == 0
                                 
-                                paragraphs.forEachIndexed { index, paragraph ->
-                                    val isOriginal = index % 2 == 0 // 偶数索引为原文，奇数索引为译文
-                                    
-                                    if (isOriginal) {
-                                        // 原文行：文字 + 播放按钮
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = paragraph.trim(),
-                                                style = MaterialTheme.typography.bodyLarge.copy(
-                                                    fontSize = 14.sp,
-                                                    lineHeight = 20.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    letterSpacing = 0.3.sp
-                                                ),
-                                                color = AnimeTextSecondary,
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .combinedClickable(
-                                                        onClick = { },
-                                                        onLongClick = {
-                                                            clipboardManager.setText(AnnotatedString(paragraph.trim()))
-                                                            Toast.makeText(context, "已复制原文", Toast.LENGTH_SHORT).show()
-                                                        }
-                                                    )
-                                            )
-                                            
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            
-                                            IconButton(
-                                                onClick = { onPlayOriginal(paragraph.trim()) },
-                                                modifier = Modifier.size(28.dp)
-                                            ) {
-                                                // 使用文本符号来表示播放图标，避免新增依赖
-                                                Text(
-                                                    text = "▶",
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    style = MaterialTheme.typography.titleSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 14.sp
-                                                    )
-                                                )
-                                            }
-                                        }
-                                        
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                    } else {
-                                        // 译文样式 - 长按复制
+                                if (isOriginal) {
+                                    // Original Text Section (日文原文)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
                                         Text(
-                                            text = paragraph.trim(),
-                                            style = MaterialTheme.typography.bodyLarge.copy(
-                                                fontSize = 14.sp,
-                                                lineHeight = 20.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                letterSpacing = 0.2.sp
+                                            text = paragraph,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                lineHeight = 22.sp,
+                                                letterSpacing = 0.2.sp,
+                                                color = TextSecondary
                                             ),
-                                            color = AnimeTextPrimary,
                                             modifier = Modifier
-                                                .fillMaxWidth()
+                                                .weight(1f)
                                                 .combinedClickable(
-                                                    onClick = { },
+                                                    onClick = {},
                                                     onLongClick = {
-                                                        clipboardManager.setText(AnnotatedString(paragraph.trim()))
-                                                        Toast.makeText(context, "已复制译文", Toast.LENGTH_SHORT).show()
+                                                        clipboardManager.setText(AnnotatedString(paragraph))
+                                                        Toast.makeText(context, "Original Copied", Toast.LENGTH_SHORT).show()
                                                     }
                                                 )
                                         )
                                         
-                                        // 在译文后添加分隔空间（除了最后一段）
-                                        if (index < paragraphs.size - 1) {
-                                            Spacer(modifier = Modifier.height(16.dp))
-                                            
-                                            // 添加淡色分隔线
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(1.dp)
-                                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        
+                                        // Play Button
+                                        IconButton(
+                                            onClick = { onPlayOriginal(paragraph) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = "Play",
+                                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                                modifier = Modifier.size(16.dp)
                                             )
-                                            
-                                            Spacer(modifier = Modifier.height(16.dp))
                                         }
+                                    }
+                                    // 换行：原文和翻译之间的间距
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                } else {
+                                    // Translated Text Section (中文翻译)
+                                    Text(
+                                        text = paragraph,
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            lineHeight = 26.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .combinedClickable(
+                                                onClick = {},
+                                                onLongClick = {
+                                                    clipboardManager.setText(AnnotatedString(paragraph))
+                                                    Toast.makeText(context, "Translation Copied", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                    )
+
+                                    // 段落之间的分隔
+                                    if (index < paragraphs.size - 1) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Divider(
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                            thickness = 1.dp
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
                                     }
                                 }
                             }
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-             
                 }
             }
         }
     }
+}
 
+// Helper to parse result
+fun resultTextToParagraphs(text: String?): List<String> {
+    if (text == null) return emptyList()
+    return text.split("\n\n").filter { it.trim().isNotEmpty() }.map { it.trim() }
+}
 
+// MinimalIconButton is defined in FloatingWindowCompose.kt
 
+@Preview
+@Composable
+fun TranslationResultPanelPreview() {
+    GameTransTheme {
+        Box(modifier = Modifier.background(Color.Gray)) {
+            TranslationResultPanel(
+                translationResult = "Original Text Here\n\nTranslated Text Here is shown below.",
+                isVisible = true
+            )
+        }
+    }
 } 
