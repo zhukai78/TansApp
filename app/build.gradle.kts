@@ -84,4 +84,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     // Use Compose BOM-managed version to avoid dependency split.
     implementation("androidx.compose.foundation:foundation")
+    // Location Service
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 }

@@ -52,6 +52,17 @@
     <string name="overlay_permission_denied">Overlay permission denied</string>
     <string name="floating_window_stopped">Floating window stopped</string>
     
+    <!-- Location permission -->
+    <string name="location_permission_message">Location permission helps AI provide more accurate context understanding (optional)</string>
+    <string name="location_permission_granted">Location permission granted</string>
+    <string name="location_permission_denied">Location permission denied, AI will work without location context</string>
+    
+    <!-- Web search -->
+    <string name="web_search">Web Search</string>
+    <string name="web_search_enabled">Web search enabled</string>
+    <string name="web_search_disabled">Web search disabled</string>
+    <string name="web_search_description">When enabled, AI can provide real-time information based on knowledge base</string>
+    
     <!-- Language settings -->
     <string name="language_settings">Language Settings</string>
     <string name="language_chinese">中文</string>

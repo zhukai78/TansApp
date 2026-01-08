@@ -25,7 +25,7 @@ class ChatWindowManager(
     private val viewModelStoreOwner: ViewModelStoreOwner,
     private val savedStateRegistryOwner: SavedStateRegistryOwner,
     private val coroutineScope: CoroutineScope,
-    private val onSendMessage: suspend (String, List<ChatMessage>) -> String?
+    private val onSendMessage: suspend (String, List<ChatMessage>, Boolean) -> String?
 ) {
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var chatView: ComposeView? = null

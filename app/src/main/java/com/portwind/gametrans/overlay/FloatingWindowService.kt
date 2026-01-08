@@ -136,10 +136,10 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
             viewModelStoreOwner = this,
             savedStateRegistryOwner = this,
             coroutineScope = lifecycleScope,
-            onSendMessage = { message: String, history: List<ChatMessage> ->
-                // Note: GeminiApiManager().sendChatMessage needs history.
+            onSendMessage = { message: String, history: List<ChatMessage>, webSearchEnabled: Boolean ->
+                // Note: GeminiApiManager().sendChatMessage needs history and webSearchEnabled flag.
                 // We're adapting the signature here.
-                GeminiApiManager(this).sendChatMessage(history, message)
+                GeminiApiManager(this).sendChatMessage(history, message, webSearchEnabled)
             }
         )
         promptWindowManager = PromptWindowManager(

@@ -31,13 +31,19 @@ import android.widget.Toast
 import org.json.JSONArray
 import org.json.JSONObject
 import com.portwind.gametrans.ai.ChatMessage
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.IconButtonDefaults
+import com.portwind.gametrans.settings.SettingsManager
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatDialog(
     isVisible: Boolean,
     onDismissRequest: () -> Unit,
-    onSendMessage: suspend (String, List<ChatMessage>) -> String?,
+    onSendMessage: suspend (String, List<ChatMessage>, Boolean) -> String?,
     coroutineScope: CoroutineScope
 ) {
     if (isVisible) {
@@ -59,6 +65,18 @@ fun ChatDialog(
             val focusRequester = remember { FocusRequester() }
             val clipboardManager = LocalClipboardManager.current
             val context = LocalContext.current
+            val settingsManager = remember { SettingsManager(context) }
+            // 使用 rememberSaveable 确保状态在配置更改时保持，并从缓存初始化
+            var webSearchEnabled by remember(Unit) { 
+                mutableStateOf(settingsManager.isWebSearchEnabled()) 
+            }
+            
+            // 每次显示对话框时，同步一次缓存状态
+            LaunchedEffect(isVisible) {
+                if (isVisible) {
+                    webSearchEnabled = settingsManager.isWebSearchEnabled()
+                }
+            }
 
             // 自动请求焦点以弹出软键盘
             LaunchedEffect(Unit) {
@@ -88,7 +106,49 @@ fun ChatDialog(
                 elevation = CardDefaults.cardElevation(8.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("问答对话", style = MaterialTheme.typography.titleLarge)
+                    // 标题行：包含标题和联网搜索开关
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("问答对话", style = MaterialTheme.typography.titleLarge)
+                        
+                        // 联网搜索开关
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "联网搜索",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (webSearchEnabled) 
+                                    MaterialTheme.colorScheme.primary 
+                                else 
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            IconToggleButton(
+                                checked = webSearchEnabled,
+                                onCheckedChange = { enabled ->
+                                    webSearchEnabled = enabled
+                                    settingsManager.setWebSearchEnabled(enabled)
+                                    Toast.makeText(
+                                        context, 
+                                        if (enabled) "联网搜索已启用" else "联网搜索已关闭", 
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                colors = IconButtonDefaults.iconToggleButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    checkedContentColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Language,
+                                    contentDescription = "联网搜索",
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(16.dp))
                     
                     LazyColumn(
@@ -186,7 +246,7 @@ fun ChatDialog(
                                     
                                     coroutineScope.launch {
                                         try {
-                                            val reply = onSendMessage(text, currentHistory)
+                                            val reply = onSendMessage(text, currentHistory, webSearchEnabled)
                                             chatMessages.add(ChatMessage("assistant", reply ?: "(无回复)"))
                                             saveChatHistory(context, chatMessages)
                                         } catch (e: Exception) {
@@ -226,8 +286,8 @@ fun ChatDialog(
                                 
                                 coroutineScope.launch {
                                     try {
-                                        // 传递历史记录和当前消息给API
-                                        val reply = onSendMessage(text, currentHistory)
+                                        // 传递历史记录、当前消息和联网搜索开关给API
+                                        val reply = onSendMessage(text, currentHistory, webSearchEnabled)
                                         chatMessages.add(ChatMessage("assistant", reply ?: "(无回复)"))
                                         saveChatHistory(context, chatMessages)
                                     } catch (e: Exception) {

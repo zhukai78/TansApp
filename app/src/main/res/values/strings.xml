@@ -52,6 +52,17 @@
     <string name="overlay_permission_denied">悬浮窗权限被拒绝</string>
     <string name="floating_window_stopped">悬浮窗已停止</string>
     
+    <!-- Location permission -->
+    <string name="location_permission_message">地理位置权限可以帮助 AI 提供更精准的上下文理解（可选）</string>
+    <string name="location_permission_granted">地理位置权限已授予</string>
+    <string name="location_permission_denied">地理位置权限被拒绝，AI 将不使用位置信息</string>
+    
+    <!-- Web search -->
+    <string name="web_search">联网搜索</string>
+    <string name="web_search_enabled">联网搜索已启用</string>
+    <string name="web_search_disabled">联网搜索已关闭</string>
+    <string name="web_search_description">启用后 AI 可以基于知识库提供实时信息</string>
+    
     <!-- Language settings -->
     <string name="language_settings">语言设置</string>
     <string name="language_chinese">中文</string>

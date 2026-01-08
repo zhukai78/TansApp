@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.util.Log
 import com.portwind.gametrans.BuildConfig
+import com.portwind.gametrans.context.ContextManager
 import com.portwind.gametrans.settings.SettingsManager
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
@@ -67,6 +68,8 @@ class GeminiApiManager(private val context: Context) {
     
     // 存储最后的错误消息
     @Volatile private var lastErrorMessage: String? = null
+    
+    private val contextManager = ContextManager(context) // New Context Manager
     
     // Flash 模型（默认/优化模式）
     private val flashModel: GenerativeModel by lazy {
@@ -139,14 +142,34 @@ class GeminiApiManager(private val context: Context) {
      * 文本多轮对话（简化实现，带速率限制和重试）：
      * 将历史与当前问题拼接为一个上下文提示，获取助手回复。
      */
-    suspend fun sendChatMessage(history: List<ChatMessage>, userMessage: String): String? = withContext(Dispatchers.IO) {
+    suspend fun sendChatMessage(history: List<ChatMessage>, userMessage: String, webSearchEnabled: Boolean = false): String? = withContext(Dispatchers.IO) {
         try {
             if (getApiKey().isBlank()) {
                 lastErrorMessage = "API密钥未配置"
                 return@withContext null
             }
+            
+            // 获取当前上下文（时间、地点）
+            val currentContext = contextManager.getCurrentContext()
 
             val sb = StringBuilder()
+            // 注入系统上下文
+            sb.appendLine("System Context:")
+            sb.appendLine(currentContext)
+            sb.appendLine("---")
+            
+            // 如果启用联网搜索，添加联网搜索指令
+            if (webSearchEnabled) {
+                sb.appendLine("【联网搜索模式已启用】")
+                sb.appendLine("当用户询问实时信息、最新数据、事实核查等需要联网的问题时，请:")
+                sb.appendLine("1. 明确告知用户你正在搜索相关信息")
+                sb.appendLine("2. 基于你的知识库提供最准确的答案")
+                sb.appendLine("3. 如果信息可能过时，请提醒用户验证最新资料")
+                sb.appendLine("4. 标注信息的时效性和来源可靠性")
+                sb.appendLine("注意：请直接回答问题，用简洁、结构化的中文输出。")
+                sb.appendLine("---")
+            }
+            
             if (history.isNotEmpty()) {
                 sb.appendLine("对话历史：")
                 history.takeLast(20).forEach { msg ->
@@ -156,6 +179,17 @@ class GeminiApiManager(private val context: Context) {
                 sb.appendLine("---")
             }
             sb.append("用户: ").appendLine(userMessage.trim()).append("助手: ")
+            
+            // 调试日志：打印完整的 prompt
+            Log.d(TAG, "========== 聊天请求开始 ==========")
+            Log.d(TAG, "用户消息: $userMessage")
+            Log.d(TAG, "联网搜索: ${if (webSearchEnabled) "启用" else "禁用"}")
+            Log.d(TAG, "历史消息数: ${history.size}")
+            Log.d(TAG, "上下文信息:\n$currentContext")
+            Log.d(TAG, "完整Prompt长度: ${sb.length} 字符")
+            // 打印 prompt 前 500 字符（避免日志过长）
+            Log.d(TAG, "Prompt预览: ${sb.toString().take(500)}...")
+            Log.d(TAG, "==================================")
 
             val input = content { text(sb.toString()) }
             
@@ -166,10 +200,19 @@ class GeminiApiManager(private val context: Context) {
                     enforceRateLimit()
                     
                     Log.d(TAG, "发送聊天消息（尝试 ${attempt + 1}/$MAX_RETRY_ATTEMPTS）...")
+                    val startTime = System.currentTimeMillis()
                     val response = generativeModel.generateContent(input)
+                    val endTime = System.currentTimeMillis()
                     val text = response.text?.trim()
                     
+                    Log.d(TAG, "========== 聊天响应 ==========")
+                    Log.d(TAG, "响应耗时: ${endTime - startTime}ms")
+                    Log.d(TAG, "响应长度: ${text?.length ?: 0} 字符")
+                    Log.d(TAG, "响应预览: ${text?.take(200) ?: "(空)"}...")
+                    Log.d(TAG, "==============================")
+                    
                     if (text.isNullOrBlank()) {
+                        Log.w(TAG, "API返回空结果")
                         lastErrorMessage = "API返回空结果"
                         return@withContext null
                     }

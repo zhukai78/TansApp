@@ -15,7 +15,8 @@ data class AppSettings(
     val compressionQuality: Int = 85,  // 平衡质量与性能的压缩质量设置
     val customPrompt: String = "",  // 新增：自定义提示词
     val language: AppLanguage = AppLanguage.CHINESE,  // 新增：语言设置
-    val modelProvider: ModelProvider = ModelProvider.GEMINI  // 新增：模型提供商
+    val modelProvider: ModelProvider = ModelProvider.GEMINI,  // 新增：模型提供商
+    val webSearchEnabled: Boolean = false  // 新增：联网搜索开关
 )
 
 /**
@@ -58,6 +59,7 @@ class SettingsManager(private val context: Context) {
         private const val KEY_CUSTOM_PROMPT = "custom_prompt"  // 新增
         private const val KEY_LANGUAGE = "language"  // 新增：语言设置
         private const val KEY_MODEL_PROVIDER = "model_provider"  // 新增：模型提供商
+        private const val KEY_WEB_SEARCH_ENABLED = "web_search_enabled"  // 新增：联网搜索开关
         
         // 默认值 - 平衡性能与质量的优化设置
         private const val DEFAULT_MAX_IMAGE_SIZE = 1024  // 优化为1024px以加快API处理速度
@@ -82,7 +84,8 @@ class SettingsManager(private val context: Context) {
             compressionQuality = getCompressionQuality(),
             customPrompt = getCustomPrompt(),  // 新增
             language = getLanguage(),  // 新增：语言设置
-            modelProvider = getModelProvider()  // 新增：模型提供商
+            modelProvider = getModelProvider(),  // 新增：模型提供商
+            webSearchEnabled = isWebSearchEnabled()  // 新增：联网搜索开关
         )
     }
     
@@ -97,6 +100,7 @@ class SettingsManager(private val context: Context) {
             putString(KEY_CUSTOM_PROMPT, settings.customPrompt)  // 新增
             putString(KEY_LANGUAGE, settings.language.name)  // 新增：语言设置
             putString(KEY_MODEL_PROVIDER, settings.modelProvider.name)  // 新增：模型提供商
+            putBoolean(KEY_WEB_SEARCH_ENABLED, settings.webSearchEnabled)  // 新增：联网搜索开关
             apply()
         }
         Log.d(TAG, "设置已保存: $settings")
@@ -208,5 +212,20 @@ class SettingsManager(private val context: Context) {
      */
     fun buildPrompt(task: AiTask): String {
         return PromptTemplates.getPrompt(task)
+    }
+    
+    /**
+     * 获取联网搜索开关状态
+     */
+    fun isWebSearchEnabled(): Boolean {
+        return sharedPrefs.getBoolean(KEY_WEB_SEARCH_ENABLED, false)
+    }
+    
+    /**
+     * 设置联网搜索开关
+     */
+    fun setWebSearchEnabled(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean(KEY_WEB_SEARCH_ENABLED, enabled).apply()
+        Log.d(TAG, "联网搜索已${if (enabled) "启用" else "禁用"}")
     }
 } 

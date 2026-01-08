@@ -70,7 +70,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var permissionHelper: PermissionHelper
     private lateinit var settingsManager: SettingsManager
     private var showSettings by mutableStateOf(false)
-    
+    private val TAG = "MainActivity"
+
     // 屏幕捕获权限结果处理
     private val screenCapturePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -151,6 +152,21 @@ class MainActivity : ComponentActivity() {
                     requestScreenCapturePermission()
                 } else {
                     Toast.makeText(this, getString(R.string.overlay_permission_denied), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        
+        // 地理位置权限（可选，用于 AI 上下文增强）
+        requestLocationPermissionIfNeeded()
+    }
+    
+    private fun requestLocationPermissionIfNeeded() {
+        if (!permissionHelper.hasLocationPermission(this)) {
+            permissionHelper.requestLocationPermission { granted ->
+                if (granted) {
+                    Log.d(TAG, "Location permission granted for AI context enhancement")
+                } else {
+                    Log.d(TAG, "Location permission denied, AI will work without location context")
                 }
             }
         }
