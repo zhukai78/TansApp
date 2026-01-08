@@ -1,4 +1,4 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.overlay.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import org.json.JSONArray
 import org.json.JSONObject
+import com.portwind.gametrans.ai.ChatMessage
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

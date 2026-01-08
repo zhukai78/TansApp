@@ -1,4 +1,4 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.overlay
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -6,8 +6,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,12 +54,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.portwind.gametrans.settings.AiTask
 import com.portwind.gametrans.ui.theme.GameTransTheme
 import com.portwind.gametrans.ui.components.AnimeCard
 import com.portwind.gametrans.ui.components.AnimeButton
@@ -64,6 +69,7 @@ import com.portwind.gametrans.ui.theme.AnimeTextPrimary
 import com.portwind.gametrans.ui.theme.AnimeTextSecondary
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TranslationResultPanel(
     translationResult: String?,
@@ -77,6 +83,7 @@ fun TranslationResultPanel(
     val clipboardManager = LocalClipboardManager.current
     val configuration = LocalConfiguration.current
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
     
     AnimatedVisibility(
         visible = showPanel && !translationResult.isNullOrBlank(),
@@ -249,7 +256,15 @@ fun TranslationResultPanel(
                                                     letterSpacing = 0.3.sp
                                                 ),
                                                 color = AnimeTextSecondary,
-                                                modifier = Modifier.weight(1f)
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .combinedClickable(
+                                                        onClick = { },
+                                                        onLongClick = {
+                                                            clipboardManager.setText(AnnotatedString(paragraph.trim()))
+                                                            Toast.makeText(context, "已复制原文", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    )
                                             )
                                             
                                             Spacer(modifier = Modifier.width(8.dp))
@@ -272,7 +287,7 @@ fun TranslationResultPanel(
                                         
                                         Spacer(modifier = Modifier.height(8.dp))
                                     } else {
-                                        // 译文样式
+                                        // 译文样式 - 长按复制
                                         Text(
                                             text = paragraph.trim(),
                                             style = MaterialTheme.typography.bodyLarge.copy(
@@ -282,7 +297,15 @@ fun TranslationResultPanel(
                                                 letterSpacing = 0.2.sp
                                             ),
                                             color = AnimeTextPrimary,
-                                            modifier = Modifier.fillMaxWidth()
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .combinedClickable(
+                                                    onClick = { },
+                                                    onLongClick = {
+                                                        clipboardManager.setText(AnnotatedString(paragraph.trim()))
+                                                        Toast.makeText(context, "已复制译文", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                )
                                         )
                                         
                                         // 在译文后添加分隔空间（除了最后一段）

@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Internal app-only broadcast permission (pre-Android 13 dynamic receivers are otherwise externally triggerable) -->
+    <permission
+        android:name="com.portwind.gametrans.permission.INTERNAL_BROADCAST"
+        android:protectionLevel="signature" />
+
     <!-- 悬浮窗权限 -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- 前台服务权限 -->
@@ -17,6 +22,8 @@
     <!-- 小米手机权限 -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Needed to send/receive internal broadcasts guarded by signature permission -->
+    <uses-permission android:name="com.portwind.gametrans.permission.INTERNAL_BROADCAST" />
 
     <application
         android:allowBackup="true"
@@ -41,7 +48,7 @@
         </activity>
 
         <activity
-            android:name=".ScreenCaptureActivity"
+            android:name=".capture.ScreenCaptureActivity"
             android:exported="false"
             android:theme="@style/Theme.Transparent"
             android:launchMode="singleInstance"
@@ -54,7 +61,7 @@
 
         <!-- 悬浮窗服务 -->
         <service
-            android:name=".FloatingWindowService"
+            android:name=".overlay.FloatingWindowService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaProjection">

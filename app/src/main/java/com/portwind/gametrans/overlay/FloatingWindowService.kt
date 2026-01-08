@@ -1,4 +1,4 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.overlay
 
 import android.app.Activity
 import android.app.Notification
@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import com.portwind.gametrans.MainActivity
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
@@ -28,6 +29,16 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.portwind.gametrans.R
+import com.portwind.gametrans.ai.ChatMessage
+import com.portwind.gametrans.ai.GeminiApiManager
+import com.portwind.gametrans.ai.TtsApiManager
+import com.portwind.gametrans.capture.ScreenCaptureActivity
+import com.portwind.gametrans.capture.ScreenCaptureManager
+import com.portwind.gametrans.overlay.chat.ChatWindowManager
+import com.portwind.gametrans.overlay.prompt.PromptWindowManager
+import com.portwind.gametrans.settings.AiTask
+import com.portwind.gametrans.settings.SettingsManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -81,6 +92,7 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
         private const val TAG = "FloatingWindowService"
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "floating_window_channel"
+        private const val INTERNAL_BROADCAST_PERMISSION = "com.portwind.gametrans.permission.INTERNAL_BROADCAST"
         
         const val ACTION_START_PROJECTION = "com.portwind.gametrans.START_PROJECTION"
         const val ACTION_STOP = "com.portwind.gametrans.STOP"
@@ -155,8 +167,9 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(restoreReceiver, filter, RECEIVER_NOT_EXPORTED)
         } else {
+            // Pre-Android 13: require signature permission so other apps can't trigger internal actions.
             @Suppress("UnspecifiedRegisterReceiverFlag")
-            registerReceiver(restoreReceiver, filter)
+            registerReceiver(restoreReceiver, filter, INTERNAL_BROADCAST_PERMISSION, null)
         }
         
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
@@ -571,19 +584,14 @@ class FloatingWindowService : Service(), SavedStateRegistryOwner, ViewModelStore
     }
     
     /**
-     * 恢复悬浮窗显示 - 翻译完成后展开折叠的悬浮窗
+     * 恢复悬浮窗显示 - 翻译完成后重置状态（保持折叠）
      */
     fun restoreFloatingWindow() {
         // 重置翻译状态
         updateTranslationState(false)
         
-        // 如果当前是折叠状态，展开悬浮窗
-        if (isCollapsed) {
-            Log.d(TAG, "Expanding collapsed window after translation")
-            handleExpandClick()
-        }
-        
-        Log.d(TAG, "Translation state reset.")
+        // 翻译结果面板弹出时，悬浮窗保持折叠状态，不自动展开
+        Log.d(TAG, "Translation state reset, keeping collapsed state: $isCollapsed")
     }
     
     /**

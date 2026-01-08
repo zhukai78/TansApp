@@ -1,4 +1,4 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.ai
 
 import android.content.Context
 import android.util.Log

@@ -1,4 +1,4 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.overlay
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -64,6 +64,7 @@ import com.portwind.gametrans.ui.components.AnimeCard
 import com.portwind.gametrans.ui.theme.AnimeTextPrimary
 import com.portwind.gametrans.ui.theme.AnimePrimary
 import com.portwind.gametrans.ui.theme.AnimeSecondary
+import com.portwind.gametrans.settings.AiTask
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue

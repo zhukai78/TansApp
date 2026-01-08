@@ -1,4 +1,4 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.overlay.prompt
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

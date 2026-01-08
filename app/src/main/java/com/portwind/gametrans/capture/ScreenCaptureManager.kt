@@ -1,4 +1,4 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.capture
 
 import android.app.Activity
 import android.content.Context
@@ -19,8 +19,10 @@ import android.util.Log
 import android.view.WindowManager
 import androidx.activity.result.ActivityResultLauncher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
+import kotlin.coroutines.resume
 
 class ScreenCaptureManager private constructor(private val context: Context) {
     
@@ -48,7 +50,14 @@ class ScreenCaptureManager private constructor(private val context: Context) {
         override fun onStop() {
             super.onStop()
             Log.w(TAG, "MediaProjection session stopped.")
-            // 不需要在这里调用release，因为Activity销毁时会调用
+            // MediaProjection can be stopped by system at any time. Clear state so we can re-request permission.
+            try {
+                mediaProjection?.unregisterCallback(this)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to unregister MediaProjection callback", e)
+            }
+            cleanup()
+            mediaProjection = null
         }
     }
     
@@ -175,23 +184,53 @@ class ScreenCaptureManager private constructor(private val context: Context) {
         }
     }
     
-    private suspend fun waitForImage(): Image? = withContext(Dispatchers.IO) {
-        return@withContext try {
-            // 使用协程延迟替代Thread.sleep，避免阻塞线程
-            kotlinx.coroutines.delay(200) 
-            
-            // 获取图像
-            val image = imageReader?.acquireLatestImage()
-            if (image != null) {
-                Log.d(TAG, "Image acquired successfully")
-            } else {
-                Log.e(TAG, "Failed to acquire image")
+    /**
+     * 等待第一帧图像（事件驱动，帧就绪时系统回调，更高效）
+     */
+    private suspend fun waitForImage(): Image? {
+        val reader = imageReader ?: return null
+        val timeoutMs = 1500L
+
+        return suspendCancellableCoroutine { cont ->
+            // 用于防止重复 resume
+            var resumed = false
+
+            val listener = ImageReader.OnImageAvailableListener { ir ->
+                if (resumed) return@OnImageAvailableListener
+                val image = try {
+                    ir.acquireLatestImage()
+                } catch (e: Exception) {
+                    Log.w(TAG, "acquireLatestImage failed", e)
+                    null
+                }
+                if (image != null && cont.isActive) {
+                    resumed = true
+                    // 移除 listener 避免后续多次回调
+                    reader.setOnImageAvailableListener(null, null)
+                    Log.d(TAG, "Image acquired successfully (event-driven)")
+                    cont.resume(image)
+                }
             }
-            
-            image
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to acquire image", e)
-            null
+
+            // 注册监听器（在主线程回调）
+            reader.setOnImageAvailableListener(listener, handler)
+
+            // 超时保护
+            val timeoutRunnable = Runnable {
+                if (!resumed && cont.isActive) {
+                    resumed = true
+                    reader.setOnImageAvailableListener(null, null)
+                    Log.e(TAG, "Failed to acquire image (timeout ${timeoutMs}ms)")
+                    cont.resume(null)
+                }
+            }
+            handler.postDelayed(timeoutRunnable, timeoutMs)
+
+            // 协程取消时清理
+            cont.invokeOnCancellation {
+                handler.removeCallbacks(timeoutRunnable)
+                reader.setOnImageAvailableListener(null, null)
+            }
         }
     }
     

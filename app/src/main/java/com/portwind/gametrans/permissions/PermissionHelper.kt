@@ -1,4 +1,4 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.permissions
 
 import android.app.Activity
 import android.content.Context
@@ -9,6 +9,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import com.portwind.gametrans.R
 
 class PermissionHelper(private val activity: ComponentActivity) {
     

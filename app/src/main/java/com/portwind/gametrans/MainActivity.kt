@@ -8,6 +8,11 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import com.portwind.gametrans.overlay.FloatingWindowService
+import com.portwind.gametrans.permissions.PermissionHelper
+import com.portwind.gametrans.settings.AppLanguage
+import com.portwind.gametrans.settings.SettingsManager
+import com.portwind.gametrans.settings.SettingsScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -85,6 +90,9 @@ class MainActivity : ComponentActivity() {
             } else {
                 startService(intent)
             }
+            
+            // 隐藏当前页面，把 Activity 移到后台
+            moveTaskToBack(true)
         } else {
             Toast.makeText(this, getString(R.string.screen_capture_permission_denied), Toast.LENGTH_LONG).show()
         }
@@ -175,7 +183,8 @@ fun MainScreen(
             painter = painterResource(id = R.drawable.bg_winter_anime),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            alpha = 0.85f  // 稍微降低不透明度，让背景更柔和
         )
 
         // Snowfall Effect

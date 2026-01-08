@@ -1,4 +1,4 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.capture
 
 import android.app.Activity
 import android.content.Context
@@ -12,12 +12,19 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
+import com.portwind.gametrans.BuildConfig
+import com.portwind.gametrans.ai.GeminiApiManager
+import com.portwind.gametrans.ai.QwenApiManager
+import com.portwind.gametrans.overlay.FloatingWindowService
+import com.portwind.gametrans.settings.ModelProvider
+import com.portwind.gametrans.settings.SettingsManager
 import kotlinx.coroutines.launch
 
 class ScreenCaptureActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "ScreenCaptureActivity"
+        private const val INTERNAL_BROADCAST_PERMISSION = "com.portwind.gametrans.permission.INTERNAL_BROADCAST"
     }
 
     private lateinit var geminiApiManager: GeminiApiManager
@@ -45,7 +52,8 @@ class ScreenCaptureActivity : ComponentActivity() {
         } else {
             Log.w(TAG, "Screen capture permission denied.")
             Toast.makeText(this, "截图权限被拒绝", Toast.LENGTH_SHORT).show()
-            finish()
+            // Ensure we restore floating window state in service (and reset translating state promptly).
+            finishAndRelease()
         }
     }
 
@@ -230,8 +238,11 @@ class ScreenCaptureActivity : ComponentActivity() {
         // 通知服务恢复悬浮窗显示
         if (intent.getBooleanExtra("RESTORE_FLOATING_WINDOW", false)) {
             // 通过广播通知服务恢复悬浮窗
-            val restoreIntent = Intent("com.portwind.gametrans.RESTORE_FLOATING_WINDOW")
-            sendBroadcast(restoreIntent)
+            val restoreIntent = Intent("com.portwind.gametrans.RESTORE_FLOATING_WINDOW").apply {
+                // Restrict to this app.
+                setPackage(packageName)
+            }
+            sendBroadcast(restoreIntent, INTERNAL_BROADCAST_PERMISSION)
         }
         
         finish()
@@ -245,8 +256,10 @@ class ScreenCaptureActivity : ComponentActivity() {
             Log.d(TAG, "Requesting FloatingWindowService to hide translation panel")
             val intent = Intent().apply {
                 action = "com.portwind.gametrans.HIDE_TRANSLATION_PANEL"
+                // Restrict to this app.
+                setPackage(packageName)
             }
-            sendBroadcast(intent)
+            sendBroadcast(intent, INTERNAL_BROADCAST_PERMISSION)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to send hide panel broadcast", e)
         }

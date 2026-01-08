@@ -82,5 +82,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation("androidx.compose.foundation:foundation:1.6.0")
+    // Use Compose BOM-managed version to avoid dependency split.
+    implementation("androidx.compose.foundation:foundation")
 }

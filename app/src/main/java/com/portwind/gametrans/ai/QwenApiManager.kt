@@ -1,9 +1,11 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.ai
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Base64
 import android.util.Log
+import com.portwind.gametrans.BuildConfig
+import com.portwind.gametrans.settings.SettingsManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext

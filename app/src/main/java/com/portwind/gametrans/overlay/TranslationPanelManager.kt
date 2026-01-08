@@ -1,4 +1,4 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.overlay
 
 import android.content.Context
 import android.graphics.PixelFormat
@@ -15,6 +15,7 @@ import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.portwind.gametrans.settings.AiTask
 import kotlin.math.roundToInt
 
 class TranslationPanelManager(

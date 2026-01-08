@@ -1,9 +1,11 @@
-package com.portwind.gametrans
+package com.portwind.gametrans.ai
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.util.Log
+import com.portwind.gametrans.BuildConfig
+import com.portwind.gametrans.settings.SettingsManager
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.ServerException
@@ -43,13 +45,16 @@ class GeminiApiManager(private val context: Context) {
     
     companion object {
         private const val TAG = "GeminiApiManager"
-        private const val MODEL_NAME = "gemini-3-pro-preview"  // 修正模型名称
+        
+        // 模型配置
+        private const val MODEL_FLASH = "gemini-3-flash-preview"  // 默认/优化模式：速度快
+        private const val MODEL_PRO = "gemini-3-pro-preview"    // 详细模式：更精确
         
         // 速率限制配置
-        private const val MIN_REQUEST_INTERVAL_MS = 1000L  // 最小请求间隔 1 秒
-        private const val MAX_RETRY_ATTEMPTS = 3  // 最大重试次数
-        private const val INITIAL_BACKOFF_MS = 2000L  // 初始退避时间 2 秒
-        private const val MAX_BACKOFF_MS = 32000L  // 最大退避时间 32 秒
+        private const val MIN_REQUEST_INTERVAL_MS = 500L  // 最小请求间隔 0.5 秒
+        private const val MAX_RETRY_ATTEMPTS = 2  // 最大重试次数（减少等待时间）
+        private const val INITIAL_BACKOFF_MS = 1000L  // 初始退避时间 1 秒
+        private const val MAX_BACKOFF_MS = 16000L  // 最大退避时间 16 秒
     }
     
     private val settingsManager = SettingsManager(context)
@@ -63,11 +68,41 @@ class GeminiApiManager(private val context: Context) {
     // 存储最后的错误消息
     @Volatile private var lastErrorMessage: String? = null
     
-    private val generativeModel: GenerativeModel by lazy {
+    // Flash 模型（默认/优化模式）
+    private val flashModel: GenerativeModel by lazy {
         GenerativeModel(
-            modelName = MODEL_NAME,
+            modelName = MODEL_FLASH,
             apiKey = getApiKey()
         )
+    }
+    
+    // Pro 模型（详细模式）
+    private val proModel: GenerativeModel by lazy {
+        GenerativeModel(
+            modelName = MODEL_PRO,
+            apiKey = getApiKey()
+        )
+    }
+    
+    // 兼容旧代码的默认模型
+    private val generativeModel: GenerativeModel
+        get() = getModelForCurrentMode()
+    
+    /**
+     * 根据当前提示词模式获取对应的模型
+     */
+    private fun getModelForCurrentMode(): GenerativeModel {
+        val mode = settingsManager.getPromptMode()
+        return when (mode) {
+            com.portwind.gametrans.settings.PromptMode.DETAILED -> {
+                Log.d(TAG, "使用 Pro 模型: $MODEL_PRO")
+                proModel
+            }
+            else -> {
+                Log.d(TAG, "使用 Flash 模型: $MODEL_FLASH")
+                flashModel
+            }
+        }
     }
 
     /**
@@ -197,10 +232,12 @@ class GeminiApiManager(private val context: Context) {
     private fun getApiKey(): String {
         return try {
             val key = BuildConfig.GEMINI_API_KEY
-            Log.d(TAG, "API密钥已获取")
+            // 调试日志：显示密钥长度和前缀（隐藏完整密钥）
+            val keyPreview = if (key.length > 10) "${key.take(8)}...${key.takeLast(4)}" else "[空或过短]"
+            Log.d(TAG, "API密钥已获取, 长度: ${key.length}, 预览: $keyPreview")
             key
         } catch (e: Exception) {
-            Log.e(TAG, "无法获取API密钥，请检查local.properties配置", e)
+            Log.e(TAG, "无法获取API密钥，请检查secrets.properties配置", e)
             ""
         }
     }
@@ -528,8 +565,10 @@ class GeminiApiManager(private val context: Context) {
      */
     fun isApiAvailable(): Boolean {
         val key = getApiKey()
-        val isAvailable = key.isNotBlank() && key != "YOUR_GEMINI_API_KEY_HERE"
-        Log.d(TAG, "API可用性: $isAvailable")
+        val isBlank = key.isBlank()
+        val isPlaceholder = key == "YOUR_GEMINI_API_KEY_HERE"
+        val isAvailable = !isBlank && !isPlaceholder
+        Log.d(TAG, "API可用性检查: isBlank=$isBlank, isPlaceholder=$isPlaceholder, isAvailable=$isAvailable")
         return isAvailable
     }
 } 
